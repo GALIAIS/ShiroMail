@@ -296,8 +296,7 @@ describe("AdminSettingsPage", () => {
     );
 
     const oauthTab = await screen.findByRole("tab", { name: "OAuth 设置" });
-    oauthTab.focus();
-    fireEvent.keyDown(oauthTab, { key: "Enter", code: "Enter" });
+    fireEvent.click(oauthTab);
 
     await screen.findByText("OAuth 应用");
     const githubCard = screen.getByText("GitHub").closest("div.rounded-xl");

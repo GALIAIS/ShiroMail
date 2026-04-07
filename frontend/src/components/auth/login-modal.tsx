@@ -58,6 +58,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [twoFactorTicket, setTwoFactorTicket] = useState("");
   const [pending, setPending] = useState(false);
+  const [resetResendPending, setResetResendPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const authSettingsQuery = useQuery({
@@ -109,6 +110,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
     setTwoFactorCode("");
     setTwoFactorTicket("");
     setPending(false);
+    setResetResendPending(false);
     setError(null);
     setNotice(null);
   }
@@ -251,11 +253,11 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   }
 
   async function handleResetResend() {
-    if (!resetVerificationTicket) {
+    if (!resetVerificationTicket || pending || resetResendPending) {
       return;
     }
     try {
-      setPending(true);
+      setResetResendPending(true);
       setError(null);
       const result = await resendEmailVerification({
         verificationTicket: resetVerificationTicket,
@@ -266,7 +268,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, t("auth.resetCodeResendFailed")));
     } finally {
-      setPending(false);
+      setResetResendPending(false);
     }
   }
 
@@ -437,10 +439,10 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                     size="sm"
                     type="button"
                     variant="ghost"
-                    disabled={pending || !resetVerificationTicket}
+                    disabled={pending || resetResendPending || !resetVerificationTicket}
                     onClick={handleResetResend}
                   >
-                    {t("auth.resendCode")}
+                    {resetResendPending ? t("auth.pending") : t("auth.resendCode")}
                   </Button>
                 </div>
 

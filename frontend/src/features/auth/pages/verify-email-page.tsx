@@ -13,7 +13,8 @@ export function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const setSession = useAuthStore((state) => state.setSession);
   const [code, setCode] = useState(searchParams.get("code") ?? "");
-  const [pending, setPending] = useState(false);
+  const [submitPending, setSubmitPending] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ticket, setTicket] = useState(searchParams.get("ticket") ?? "");
@@ -23,7 +24,10 @@ export function VerifyEmailPage() {
 
 
   async function handleSubmit() {
-    setPending(true);
+    if (submitPending || resendPending) {
+      return;
+    }
+    setSubmitPending(true);
     setError(null);
     try {
       const session = await confirmEmailVerification({
@@ -35,12 +39,15 @@ export function VerifyEmailPage() {
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "邮箱验证码校验失败。"));
     } finally {
-      setPending(false);
+      setSubmitPending(false);
     }
   }
 
   async function handleResend() {
-    setPending(true);
+    if (submitPending || resendPending) {
+      return;
+    }
+    setResendPending(true);
     setError(null);
     try {
       const result = await resendEmailVerification({ verificationTicket: ticket });
@@ -50,7 +57,7 @@ export function VerifyEmailPage() {
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "验证码重发失败。"));
     } finally {
-      setPending(false);
+      setResendPending(false);
     }
   }
 
@@ -71,11 +78,11 @@ export function VerifyEmailPage() {
           />
           {notice ? <p className="text-xs text-emerald-600">{notice}</p> : null}
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
-          <Button className="w-full" disabled={pending || !ticket || code.trim().length < 6} onClick={handleSubmit}>
-            {pending ? "验证中..." : "确认验证"}
+          <Button className="w-full" disabled={submitPending || resendPending || !ticket || code.trim().length < 6} onClick={handleSubmit}>
+            {submitPending ? "验证中..." : "确认验证"}
           </Button>
-          <Button className="w-full" disabled={pending || !ticket} variant="outline" onClick={handleResend}>
-            {pending ? "处理中..." : "重新发送验证码"}
+          <Button className="w-full" disabled={submitPending || resendPending || !ticket} variant="outline" onClick={handleResend}>
+            {resendPending ? "处理中..." : "重新发送验证码"}
           </Button>
         </div>
       </div>

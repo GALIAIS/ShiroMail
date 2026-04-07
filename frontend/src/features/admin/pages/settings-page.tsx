@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Globe,
@@ -486,6 +486,7 @@ export function AdminSettingsPage() {
   );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackVariant, setFeedbackVariant] = useState<"error" | "success">("success");
+  const deliveryTestLockRef = useRef(false);
 
   useEffect(() => {
     if (!settingsQuery.data) {
@@ -597,6 +598,9 @@ export function AdminSettingsPage() {
   }
 
   function handleSendDeliveryTest() {
+    if (deliveryTestLockRef.current || testDeliveryMutation.isPending) {
+      return;
+    }
     const recipient = deliveryTestRecipient.trim() || delivery.fromAddress;
     const recipientError = validateEmailAddress(recipient);
     if (recipientError) {
@@ -605,7 +609,12 @@ export function AdminSettingsPage() {
       window.setTimeout(() => setFeedback(null), 5000);
       return;
     }
-    testDeliveryMutation.mutate();
+    deliveryTestLockRef.current = true;
+    testDeliveryMutation.mutate(undefined, {
+      onSettled: () => {
+        deliveryTestLockRef.current = false;
+      },
+    });
   }
 
   return (

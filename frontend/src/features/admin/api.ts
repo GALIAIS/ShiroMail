@@ -755,6 +755,10 @@ export async function sendAdminMailDeliveryTest(input: { to?: string }) {
   const { data } = await http.post<{ status: string; recipient: string }>(
     "/admin/configs/mail.delivery/test",
     input,
+    {
+      // Real SMTP providers can take longer than the default API timeout.
+      timeout: 30_000,
+    },
   );
   return data;
 }

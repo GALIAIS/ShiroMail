@@ -13,14 +13,18 @@ export function ResetPasswordPage() {
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [nextPassword, setNextPassword] = useState("");
-  const [pending, setPending] = useState(false);
+  const [submitPending, setSubmitPending] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const siteName = useSiteName();
   usePageTitle(composePageTitle("重置密码", siteName));
 
   async function handleSubmit() {
-    setPending(true);
+    if (submitPending || resendPending) {
+      return;
+    }
+    setSubmitPending(true);
     setError(null);
     setNotice(null);
     try {
@@ -34,12 +38,15 @@ export function ResetPasswordPage() {
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "重置失败，请检查验证码后重试。"));
     } finally {
-      setPending(false);
+      setSubmitPending(false);
     }
   }
 
   async function handleResend() {
-    setPending(true);
+    if (submitPending || resendPending) {
+      return;
+    }
+    setResendPending(true);
     setError(null);
     setNotice(null);
     try {
@@ -50,7 +57,7 @@ export function ResetPasswordPage() {
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "验证码重发失败。"));
     } finally {
-      setPending(false);
+      setResendPending(false);
     }
   }
 
@@ -88,13 +95,13 @@ export function ResetPasswordPage() {
 
           <Button
             className="w-full"
-            disabled={pending || !ticket || code.trim().length < 6 || nextPassword.trim().length < 8}
+            disabled={submitPending || resendPending || !ticket || code.trim().length < 6 || nextPassword.trim().length < 8}
             onClick={handleSubmit}
           >
-            {pending ? "处理中..." : "确认重置"}
+            {submitPending ? "处理中..." : "确认重置"}
           </Button>
-          <Button className="w-full" disabled={pending || !ticket} variant="outline" onClick={handleResend}>
-            {pending ? "处理中..." : "重新发送验证码"}
+          <Button className="w-full" disabled={submitPending || resendPending || !ticket} variant="outline" onClick={handleResend}>
+            {resendPending ? "处理中..." : "重新发送验证码"}
           </Button>
 
           <div className="pt-1 text-center text-xs text-muted-foreground">
