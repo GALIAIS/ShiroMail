@@ -312,6 +312,17 @@ const translation = {
         "系统会根据账户权限展示对应的控制台页面与可操作范围。",
     },
   },
+  docsLanding: {
+    llmCompanion: {
+      title: "LLM Companion",
+      description: "如果你想让 AI 模型快速理解 ShiroMail API，可以直接使用这个公开的 LLM Companion 文件。",
+      fileIntro: "文件地址为",
+      fileNote: "内容是面向大模型整理的英文 API 快速说明。",
+      summary: "它概括了资源模型、鉴权方式、常见工作流，以及推荐的 mailbox → message → extraction 自动化调用顺序。",
+      summaryNote: "适合直接提供给 GPT、Claude 或其他大模型作为 ShiroMail API 快速上下文。",
+      open: "打开 /llm.txt",
+    },
+  },
   statsPage: {
     eyebrow: "Stats",
     title: "统计面板说明",

@@ -324,6 +324,17 @@ const translation = {
         "They share the same sign-in modal and are routed to the proper dashboard based on role after sign-in.",
     },
   },
+  docsLanding: {
+    llmCompanion: {
+      title: "LLM Companion",
+      description: "Use the public LLM companion file if you want to give an AI model a compact overview of the ShiroMail API.",
+      fileIntro: "The file is available at",
+      fileNote: "It is written as an English, model-friendly API quickstart.",
+      summary: "It summarizes resources, authentication modes, common workflows, and the recommended mailbox -> message -> extraction sequence for automation.",
+      summaryNote: "This makes it suitable for GPT, Claude, or other LLMs as a fast ShiroMail API context file.",
+      open: "Open /llm.txt",
+    },
+  },
   statsPage: {
     eyebrow: "Stats",
     title: "Stats overview",

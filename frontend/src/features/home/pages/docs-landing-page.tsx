@@ -1,4 +1,5 @@
 import { BookOpen, Globe, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PublicBottomCta, PublicPageHero, PublicShell } from "../components/public-shell";
 import { PublicChecklist, PublicFeatureCard, PublicInfoCard, PublicSection } from "../components/public-ui";
 import { apiReferenceSections, runtimeCapabilities } from "../docs-reference";
@@ -32,6 +33,8 @@ const docsSections = [
 ];
 
 export function DocsLandingPage() {
+  const { t } = useTranslation();
+
   return (
     <PublicShell>
       <PublicPageHero
@@ -56,6 +59,32 @@ export function DocsLandingPage() {
         title="运行时范围"
       >
         <PublicChecklist items={runtimeCapabilities} marker="index" />
+      </PublicInfoCard>
+
+      <PublicInfoCard
+        description={t("docsLanding.llmCompanion.description")}
+        title={t("docsLanding.llmCompanion.title")}
+      >
+        <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+          <p>
+            {t("docsLanding.llmCompanion.fileIntro")} <code>/llm.txt</code>
+            <br />
+            {t("docsLanding.llmCompanion.fileNote")}
+          </p>
+          <p>
+            {t("docsLanding.llmCompanion.summary")}
+            <br />
+            {t("docsLanding.llmCompanion.summaryNote")}
+          </p>
+          <a
+            className="inline-flex items-center rounded-lg border border-border/60 bg-card px-3 py-2 font-medium text-foreground transition hover:border-border hover:bg-accent"
+            href="/llm.txt"
+            rel="noreferrer"
+            target="_blank"
+          >
+            {t("docsLanding.llmCompanion.open")}
+          </a>
+        </div>
       </PublicInfoCard>
 
       <PublicSection

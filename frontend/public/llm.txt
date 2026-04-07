@@ -1,0 +1,370 @@
+ShiroMail API Companion for LLMs
+================================
+
+Purpose
+-------
+This file is a compact, LLM-friendly guide to the ShiroMail API. It is meant to help an AI agent quickly understand the main resources, authentication model, common workflows, and the most important API routes without parsing the full web documentation first.
+
+
+What ShiroMail Is
+-----------------
+ShiroMail is a temporary email platform with:
+
+- account registration and login
+- OAuth login support
+- domain and DNS provider management
+- temporary mailbox creation and release
+- message storage and parsing
+- extraction rules for OTP codes, links, and custom fields
+- API keys and webhooks
+- admin-only overview endpoints
+
+The most common automation flow is:
+
+1. authenticate with a user session or API key
+2. list accessible domains
+3. create a mailbox on one of those domains
+4. poll the mailbox message list
+5. read the newest message
+6. read extraction results first
+7. fall back to full message body or raw EML when needed
+
+
+Core Resource Model
+-------------------
+
+Account
+- A normal user account can log in, manage domains, create mailboxes, and create API keys.
+- An admin account can also access admin-only endpoints.
+
+Domain
+- A domain is a root domain or generated subdomain that can be used for mailbox addresses.
+- Domains may be bound to DNS provider zones for verification and DNS record automation.
+
+Mailbox
+- A mailbox is a temporary inbox under a domain.
+- A mailbox can be created, extended, listed, read, and released.
+- Releasing a mailbox ends future mail reception for that mailbox.
+
+Message
+- A message belongs to one mailbox.
+- Messages can be listed and fetched in full detail.
+- Raw EML and parsed raw views are both available.
+
+Extraction
+- Extractions are structured values derived from a message by extraction templates or rules.
+- Typical outputs include verification codes, links, tokens, or custom regex matches.
+
+API Key
+- API keys allow programmatic access without browser sessions.
+- API keys may be scoped and may optionally be restricted to specific domains.
+- If a key is not bound to any domain, it should be treated as usable across all domains available to that key owner.
+- Admin API keys should also be able to operate on platform-private domains when the backend grants admin-level access.
+
+Webhook
+- Webhooks allow event delivery to external systems.
+
+
+Authentication Model
+--------------------
+
+Public endpoints
+- Registration, login, OAuth start/callback, forgot password, and reset password are public.
+
+User session endpoints
+- Most portal and account endpoints require a logged-in user session.
+
+API key endpoints
+- Most mailbox, message, dashboard, and domain endpoints can also be used with an API key as a Bearer token.
+- Use:
+  Authorization: Bearer <token>
+
+Admin endpoints
+- Admin routes require admin privileges.
+- Do not assume a normal user API key can access admin-only routes.
+
+Important rule for agents
+- Treat session auth and API key auth as separate modes.
+- If an endpoint fails under a session, do not assume the API key is also invalid.
+- If an endpoint fails under an API key, check scopes, domain bindings, and account role before concluding the route is unavailable.
+
+
+Recommended Agent Workflow
+--------------------------
+
+Mailbox automation
+1. GET /api/v1/domains
+2. Choose one accessible domain
+3. POST /api/v1/mailboxes
+4. Poll GET /api/v1/mailboxes/:mailboxId/messages
+5. For the latest message, call:
+   - GET /api/v1/mailboxes/:mailboxId/messages/:id/extractions
+   - then GET /api/v1/mailboxes/:mailboxId/messages/:id if extraction data is missing
+   - then GET /api/v1/mailboxes/:mailboxId/messages/:id/raw/parsed if deeper parsing is needed
+   - then GET /api/v1/mailboxes/:mailboxId/messages/:id/raw only when the original RFC822 source is required
+
+OTP / verification-code workflow
+1. Create mailbox
+2. Trigger email on the target site
+3. Poll message list until a new message arrives
+4. Read extraction results first
+5. If no extraction matches are present, inspect subject, text body, and parsed HTML
+6. Use raw EML only as a last resort
+
+Domain onboarding workflow
+1. POST /api/v1/domains
+2. PUT /api/v1/domains/:id/provider-binding
+3. POST /api/v1/domains/:id/verify
+4. Optionally inspect provider zone records
+5. Preview DNS changes
+6. Apply DNS changes
+
+
+Endpoint Overview
+-----------------
+
+1) Auth and Account
+
+POST /api/v1/auth/register
+- Public
+- Creates a new account
+- Whether registration is open depends on system settings
+
+POST /api/v1/auth/login
+- Public
+- Password login
+- May require a second TOTP step
+
+POST /api/v1/auth/oauth/:provider/start
+- Public
+- Starts an OAuth sign-in flow
+
+POST /api/v1/auth/oauth/:provider/callback
+- Public
+- Completes the OAuth flow and creates a session
+
+POST /api/v1/auth/forgot-password
+- Public
+- Sends a one-time verification code to the account email
+
+POST /api/v1/auth/reset-password
+- Public
+- Resets the password using the verification code
+
+GET /api/v1/account/profile
+- User session required
+- Returns the current account profile and security status
+
+PATCH /api/v1/account/profile
+- User session required
+- Updates display name, timezone, and language
+
+
+2) Domains and DNS
+
+GET /api/v1/domains
+- User session or API key
+- Lists domains accessible to the current identity
+
+POST /api/v1/domains
+- User session or API key
+- Creates a root domain owned by the current account
+
+POST /api/v1/domains/generate
+- User session or API key
+- Generates subdomains from a root domain
+
+PUT /api/v1/domains/:id/provider-binding
+- User session required
+- Binds or unbinds a DNS provider account for a domain
+
+POST /api/v1/domains/:id/verify
+- User session required
+- Verifies DNS propagation and updates the domain status
+
+GET /api/v1/portal/domain-providers/:id/zones/:zoneId/records
+- User session required
+- Reads DNS records from a provider zone
+
+POST /api/v1/portal/domain-providers/:id/zones/:zoneId/change-sets/preview
+- User session required
+- Previews a DNS change set without applying it
+
+POST /api/v1/portal/dns-change-sets/:changeSetId/apply
+- User session required
+- Applies a previously previewed DNS change set
+
+
+3) Mailboxes and Messages
+
+GET /api/v1/dashboard
+- User session or API key
+- Returns dashboard-level summary data for the current account
+
+GET /api/v1/mailboxes
+- User session or API key
+- Lists available mailboxes for the current account
+
+POST /api/v1/mailboxes
+- User session or API key
+- Creates a mailbox
+- Typical inputs include:
+  - domainId
+  - localPart (optional if the backend can generate one)
+
+POST /api/v1/mailboxes/:id/extend
+- User session or API key
+- Extends mailbox lifetime
+
+POST /api/v1/mailboxes/:id/release
+- User session or API key
+- Releases the mailbox and stops future mail reception
+
+GET /api/v1/mailboxes/:mailboxId/messages
+- User session or API key
+- Returns the message list for one mailbox
+
+GET /api/v1/mailboxes/:mailboxId/messages/:id
+- User session or API key
+- Returns message details, body, headers, and attachment metadata
+
+GET /api/v1/mailboxes/:mailboxId/messages/:id/extractions
+- User session or API key
+- Returns structured extraction results for that message
+- This is the preferred endpoint for verification codes and links
+
+GET /api/v1/mailboxes/:mailboxId/messages/:id/raw
+- User session or API key
+- Returns the original raw EML content
+
+GET /api/v1/mailboxes/:mailboxId/messages/:id/raw/parsed
+- User session or API key
+- Returns a parsed representation of the raw email
+- Useful for difficult MIME messages and nested parts
+
+POST /api/v1/mailboxes/:mailboxId/messages/receive
+- User session or API key
+- Injects an RFC822 email into the mailbox processing pipeline
+- Useful for testing or replay
+
+
+4) API Keys, Webhooks, and Portal Extras
+
+GET /api/v1/portal/api-keys
+- User session required
+- Lists API keys created by the current account
+
+POST /api/v1/portal/api-keys
+- User session required
+- Creates an API key with scopes and optional domain bindings
+
+GET /api/v1/portal/webhooks
+- User session required
+- Lists webhook configurations for the current account
+
+POST /api/v1/portal/webhooks
+- User session required
+- Creates a webhook endpoint and event subscription
+
+GET /api/v1/portal/docs
+- User session required
+- Returns internal portal documentation entries
+
+GET /api/v1/portal/billing
+- User session required
+- Returns quota, plan, and request-limit information
+
+GET /api/v1/portal/balance
+- User session required
+- Returns balance and ledger information
+
+GET /api/v1/admin/overview
+- Admin only
+- Returns admin dashboard overview data
+
+
+Important Behavioral Notes
+--------------------------
+
+Mailbox IDs and message IDs
+- Always store mailboxId and messageId explicitly.
+- Do not assume message IDs are globally unique across all mailboxes unless confirmed by the backend contract.
+- When calling message detail routes, always pair the message ID with the correct mailbox ID.
+
+Extraction-first strategy
+- Prefer `/extractions` before reading full bodies.
+- This is the fastest and most reliable path for OTP codes, links, and short structured tokens.
+
+Parsed vs raw
+- `/raw/parsed` is better than `/raw` for most automation because it avoids custom MIME parsing inside the agent.
+- `/raw` should mainly be used when exact source fidelity matters.
+
+Mailbox release
+- After release, a mailbox should be treated as inactive.
+- Agents should stop polling released mailboxes.
+- If UI or list responses still include released mailboxes, treat that as stale data and re-check with fresh list queries.
+
+Domain access
+- Domain visibility may depend on ownership, admin role, and API key bindings.
+- If a mailbox creation request fails, first verify that the chosen domain is accessible to the current auth context.
+
+Provider and DNS operations
+- DNS preview and DNS apply are separate steps.
+- Do not assume a preview automatically persists or applies changes.
+
+
+Suggested Agent Heuristics
+--------------------------
+
+If you need a verification code
+- Check extractions first
+- Then inspect message subject
+- Then inspect plain text body
+- Then inspect parsed HTML
+- Then inspect raw EML
+
+If mailbox creation fails
+- Re-list domains
+- Confirm the chosen domain is visible to the current session or API key
+- Check whether the API key is domain-bound
+- If using an admin key, verify that admin-only/private domain access is enabled in backend policy
+
+If messages seem missing
+- Poll the mailbox messages endpoint for a short window
+- Prefer small repeated polls instead of long blocking waits
+- Re-fetch the mailbox list if the mailbox lifecycle may have changed
+
+If MIME content looks broken
+- Prefer `/raw/parsed`
+- Only parse `/raw` yourself when necessary
+
+
+Minimal Example Sequence
+------------------------
+
+Example: create a mailbox, then read a verification code
+
+1. GET /api/v1/domains
+2. POST /api/v1/mailboxes
+3. GET /api/v1/mailboxes/:mailboxId/messages
+4. GET /api/v1/mailboxes/:mailboxId/messages/:messageId/extractions
+5. If needed, GET /api/v1/mailboxes/:mailboxId/messages/:messageId
+
+The expected best-case result is:
+- mailbox created successfully
+- one new message appears
+- extraction results already contain the verification code or target link
+
+
+Usage Advice for Humans Feeding This File to an LLM
+---------------------------------------------------
+
+When giving this file to a model, also provide:
+- your base URL
+- whether you are using session cookies or an API key
+- the exact domain or mailbox you want to use
+- whether you want OTP extraction, raw parsing, DNS automation, or account management
+
+Good prompt example:
+"Use this ShiroMail API companion plus my API key to create a mailbox on domain X, poll for the newest message, and return the extracted verification code."
+
