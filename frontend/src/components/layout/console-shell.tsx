@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
+import { SiteBrandMark } from "@/components/brand/site-brand-mark";
 import { composePageTitle, usePageTitle } from "@/hooks/use-page-title";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HeaderPreferences } from "@/components/preferences/header-preferences";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useSiteBranding } from "@/hooks/use-site-branding";
 import {
   Sidebar,
   SidebarContent,
@@ -57,6 +59,7 @@ export function ConsoleShell({
 }: ConsoleShellProps) {
   const location = useLocation();
   const { t } = useTranslation();
+  const { siteIconUrl } = useSiteBranding();
   const roleLabel = t(role === "admin" ? "console.role.admin" : "console.role.user");
   const planLabel = t(role === "admin" ? "console.plan.admin" : "console.plan.user");
   const roleSubtitle = t(role === "admin" ? "console.subtitle.admin" : "console.subtitle.user");
@@ -80,7 +83,7 @@ export function ConsoleShell({
         <SidebarHeader className="gap-3 px-3 py-3">
           <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 px-3 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-              <img alt={brand} className="size-4.5" src="/shiromail-mark.svg?v=20260407" />
+              <SiteBrandMark iconUrl={siteIconUrl} imageClassName="size-5" siteName={brand} />
             </div>
             <div className="grid min-w-0 gap-0.5 group-data-[collapsible=icon]:hidden">
               <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">{brand}</span>
@@ -160,9 +163,10 @@ export function ConsoleShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="min-h-screen bg-background">
-        <div className="min-h-screen bg-background">
-          <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95">
+      <SidebarInset className="brand-app-shell brand-console-shell min-h-screen bg-background">
+        <div aria-hidden className="brand-backdrop opacity-70" />
+        <div className="relative min-h-screen bg-transparent">
+          <header className="sticky top-0 z-30 mb-3 rounded-b-2xl border border-border/60 border-t-transparent bg-background/84 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/78">
             <div className="flex h-14 items-center gap-3 px-3 sm:px-4 lg:px-6">
               <div className="flex items-center gap-2">
                 <SidebarTrigger />

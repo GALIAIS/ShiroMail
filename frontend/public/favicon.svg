@@ -1,9 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
-  <rect x="24" y="24" width="208" height="208" rx="52" fill="#FFFFFF"/>
-  <rect x="24" y="24" width="208" height="208" rx="52" stroke="#111827" stroke-width="12"/>
-  <path d="M72 92C72 80.954 80.954 72 92 72H164C175.046 72 184 80.954 184 92V164C184 175.046 175.046 184 164 184H92C80.954 184 72 175.046 72 164V92Z" fill="#F9FAFB"/>
-  <path d="M72 100L128 142L184 100" stroke="#111827" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M72 92C72 80.954 80.954 72 92 72H164C175.046 72 184 80.954 184 92V164C184 175.046 175.046 184 164 184H92C80.954 184 72 175.046 72 164V92Z" stroke="#111827" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M146 58L166 78L146 98" stroke="#DC2626" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M124 58L144 78L124 98" stroke="#DC2626" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="shiro-bg" x1="80" y1="72" x2="432" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2A2A2A" />
+      <stop offset="1" stop-color="#0A0A0A" />
+    </linearGradient>
+    <linearGradient id="shiro-paper" x1="256" y1="100" x2="256" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#E8E8E8" />
+    </linearGradient>
+    <linearGradient id="shiro-flap" x1="256" y1="308" x2="256" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#D4D4D4" />
+    </linearGradient>
+    <linearGradient id="shiro-inside" x1="256" y1="220" x2="256" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F1F1F" />
+      <stop offset="1" stop-color="#050505" />
+    </linearGradient>
+    <filter id="shiro-shadow" x="39" y="249" width="434" height="248" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+      <feOffset dy="-6" />
+      <feGaussianBlur stdDeviation="10" />
+      <feComposite in2="hardAlpha" operator="out" />
+      <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0" />
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+    <filter id="shiro-glow" x="94" y="68" width="324" height="264" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix" />
+      <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
+      <feOffset dy="-4" />
+      <feGaussianBlur stdDeviation="8" />
+      <feComposite in2="hardAlpha" operator="out" />
+      <feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.15 0" />
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1_1" />
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape" />
+    </filter>
+    <clipPath id="shiro-envelope">
+      <rect x="96" y="220" width="320" height="200" rx="20" />
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#shiro-bg)" />
+  <path d="M126 116C126 107.163 133.163 100 142 100H370C378.837 100 386 107.163 386 116V300H126V116Z" fill="url(#shiro-paper)" filter="url(#shiro-glow)" />
+  <path d="M286 130H226V160H286V190H226" stroke="#1A1A1A" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" />
+  <g clip-path="url(#shiro-envelope)">
+    <rect x="96" y="220" width="320" height="200" fill="url(#shiro-inside)" />
+    <path d="M96 220L256 335L76 440Z" fill="#666666" />
+    <path d="M416 220L256 335L436 440Z" fill="#999999" />
+    <g filter="url(#shiro-shadow)">
+      <path d="M76 440L236 315C247.198 306.251 264.802 306.251 276 315L436 440H76Z" fill="url(#shiro-flap)" />
+    </g>
+  </g>
 </svg>

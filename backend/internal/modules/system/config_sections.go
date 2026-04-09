@@ -9,9 +9,12 @@ type SiteIdentityConfig struct {
 	SiteName        string `json:"siteName"`
 	Slogan          string `json:"slogan"`
 	SupportEmail    string `json:"supportEmail"`
+	SiteIconURL     string `json:"siteIconUrl"`
 	AppBaseURL      string `json:"appBaseUrl"`
 	DefaultLanguage string `json:"defaultLanguage"`
 	DefaultTimeZone string `json:"defaultTimeZone"`
+	AmbientThemeEnabled   bool   `json:"ambientThemeEnabled"`
+	AmbientThemeIntensity string `json:"ambientThemeIntensity"`
 }
 
 type AuthRegistrationPolicyConfig struct {
@@ -192,9 +195,12 @@ func defaultConfigValueForKey(key string) map[string]any {
 			"siteName":        "Shiro Email",
 			"slogan":          "Enterprise temporary mail platform",
 			"supportEmail":    "support@shiro.local",
+			"siteIconUrl":     "",
 			"appBaseUrl":      "http://localhost:5173",
 			"defaultLanguage": "zh-CN",
 			"defaultTimeZone": "Asia/Shanghai",
+			"ambientThemeEnabled":   true,
+			"ambientThemeIntensity": "balanced",
 		}
 	case ConfigKeyAuthRegistrationPolicy:
 		return map[string]any{
@@ -421,9 +427,12 @@ func normalizeConfigValue(key string, value map[string]any) map[string]any {
 		base["siteName"] = normalizeString(base["siteName"], "Shiro Email")
 		base["slogan"] = normalizeString(base["slogan"], "")
 		base["supportEmail"] = normalizeString(base["supportEmail"], "")
+		base["siteIconUrl"] = normalizeString(base["siteIconUrl"], "")
 		base["appBaseUrl"] = normalizeString(base["appBaseUrl"], "http://localhost:5173")
 		base["defaultLanguage"] = normalizeString(base["defaultLanguage"], "zh-CN")
 		base["defaultTimeZone"] = normalizeString(base["defaultTimeZone"], "Asia/Shanghai")
+		base["ambientThemeEnabled"] = normalizeBool(base["ambientThemeEnabled"], true)
+		base["ambientThemeIntensity"] = normalizeAmbientThemeIntensity(base["ambientThemeIntensity"])
 	}
 
 	return base
@@ -481,6 +490,16 @@ func normalizeRateLimitIdentityMode(value any) string {
 		return mode
 	default:
 		return "bearer_or_ip"
+	}
+}
+
+func normalizeAmbientThemeIntensity(value any) string {
+	intensity := strings.ToLower(strings.TrimSpace(normalizeString(value, "balanced")))
+	switch intensity {
+	case "subtle", "balanced", "vivid":
+		return intensity
+	default:
+		return "balanced"
 	}
 }
 
@@ -597,9 +616,12 @@ func LoadPublicSiteSettings(ctx context.Context, repo ConfigRepository) (PublicS
 				SiteName:        normalizeString(item.Value["siteName"], "Shiro Email"),
 				Slogan:          normalizeString(item.Value["slogan"], ""),
 				SupportEmail:    normalizeString(item.Value["supportEmail"], ""),
+				SiteIconURL:     normalizeString(item.Value["siteIconUrl"], ""),
 				AppBaseURL:      normalizeString(item.Value["appBaseUrl"], "http://localhost:5173"),
 				DefaultLanguage: normalizeString(item.Value["defaultLanguage"], "zh-CN"),
 				DefaultTimeZone: normalizeString(item.Value["defaultTimeZone"], "Asia/Shanghai"),
+				AmbientThemeEnabled:   normalizeBool(item.Value["ambientThemeEnabled"], true),
+				AmbientThemeIntensity: normalizeAmbientThemeIntensity(item.Value["ambientThemeIntensity"]),
 			}
 		case ConfigKeyMailSMTP:
 			settings.MailDNS = PublicMailDNSHints{

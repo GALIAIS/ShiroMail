@@ -53,9 +53,12 @@ describe("VerifyEmailPage", () => {
         siteName: "Shiro Email",
         slogan: "Enterprise temporary mail platform",
         supportEmail: "support@shiro.local",
+        siteIconUrl: "",
         appBaseUrl: "http://localhost:5173",
         defaultLanguage: "zh-CN",
         defaultTimeZone: "Asia/Shanghai",
+        ambientThemeEnabled: true,
+        ambientThemeIntensity: "balanced",
       },
       mailDns: {
         mxTarget: "smtp.shiro.local",

@@ -81,6 +81,20 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.8) 32%, rgba(245, 247, 250, 0.68) 58%, rgba(255, 255, 255, 0.98) 100%);
+    --ambient-glow-1: rgba(71, 85, 105, 0.1);
+    --ambient-glow-2: rgba(148, 163, 184, 0.14);
+    --ambient-glow-3: rgba(203, 213, 225, 0.24);
+    --ambient-season-glow-1: transparent;
+    --ambient-season-glow-2: transparent;
+    --ambient-grid-line: rgba(15, 23, 42, 0.08);
+    --ambient-grid-opacity: 0.5;
+    --ambient-panel-grid-line: rgba(15, 23, 42, 0.06);
+    --ambient-panel-glow-1: rgba(15, 23, 42, 0.08);
+    --ambient-panel-glow-2: rgba(148, 163, 184, 0.14);
+    --ambient-before-opacity: 1;
+    --ambient-panel-after-opacity: 0.85;
+    --ambient-animation-state: running;
 }
 
 .dark {
@@ -115,6 +129,20 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 8%);
     --sidebar-ring: oklch(0.556 0 0);
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(17, 17, 17, 0.98) 0%, rgba(10, 10, 10, 0.96) 34%, rgba(15, 23, 42, 0.72) 62%, rgba(8, 8, 8, 1) 100%);
+    --ambient-glow-1: rgba(255, 255, 255, 0.06);
+    --ambient-glow-2: rgba(148, 163, 184, 0.12);
+    --ambient-glow-3: rgba(255, 255, 255, 0.05);
+    --ambient-season-glow-1: transparent;
+    --ambient-season-glow-2: transparent;
+    --ambient-grid-line: rgba(255, 255, 255, 0.06);
+    --ambient-grid-opacity: 0.9;
+    --ambient-panel-grid-line: rgba(255, 255, 255, 0.06);
+    --ambient-panel-glow-1: rgba(255, 255, 255, 0.06);
+    --ambient-panel-glow-2: rgba(148, 163, 184, 0.12);
+    --ambient-before-opacity: 1;
+    --ambient-panel-after-opacity: 0.85;
+    --ambient-animation-state: running;
 }
 
 @layer base {
@@ -139,5 +167,273 @@
 @media (min-width: 1440px) {
   html {
     font-size: 15.75px;
+  }
+}
+
+@keyframes brand-gradient-drift {
+  0% {
+    transform: translate3d(-8%, -6%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, 4%, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-8%, -6%, 0) scale(1);
+  }
+}
+
+@keyframes brand-grid-pan {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(40px, 40px, 0);
+  }
+}
+
+@layer components {
+  :root[data-time-segment="midnight"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(246, 244, 255, 0.98) 0%, rgba(236, 242, 255, 0.94) 34%, rgba(226, 232, 255, 0.88) 62%, rgba(248, 249, 255, 1) 100%);
+    --ambient-glow-1: rgba(76, 29, 149, 0.12);
+    --ambient-glow-2: rgba(30, 64, 175, 0.14);
+    --ambient-glow-3: rgba(51, 65, 85, 0.18);
+  }
+
+  :root[data-time-segment="predawn"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(244, 248, 255, 0.98) 0%, rgba(233, 243, 255, 0.95) 34%, rgba(224, 238, 252, 0.9) 62%, rgba(247, 250, 255, 1) 100%);
+    --ambient-glow-1: rgba(29, 78, 216, 0.1);
+    --ambient-glow-2: rgba(6, 182, 212, 0.12);
+    --ambient-glow-3: rgba(148, 163, 184, 0.2);
+  }
+
+  :root[data-time-segment="dawn"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(255, 248, 239, 0.99) 0%, rgba(255, 241, 227, 0.95) 32%, rgba(255, 233, 211, 0.9) 60%, rgba(255, 248, 241, 1) 100%);
+    --ambient-glow-1: rgba(251, 146, 60, 0.12);
+    --ambient-glow-2: rgba(250, 204, 21, 0.13);
+    --ambient-glow-3: rgba(125, 211, 252, 0.18);
+  }
+
+  :root[data-time-segment="morning"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(243, 251, 255, 0.99) 0%, rgba(235, 247, 255, 0.95) 33%, rgba(228, 241, 250, 0.9) 62%, rgba(247, 252, 255, 1) 100%);
+    --ambient-glow-1: rgba(56, 189, 248, 0.11);
+    --ambient-glow-2: rgba(34, 197, 94, 0.1);
+    --ambient-glow-3: rgba(186, 230, 253, 0.2);
+  }
+
+  :root[data-time-segment="noon"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(247, 252, 255, 0.99) 0%, rgba(239, 248, 255, 0.95) 34%, rgba(233, 243, 252, 0.9) 62%, rgba(250, 252, 255, 1) 100%);
+    --ambient-glow-1: rgba(14, 165, 233, 0.12);
+    --ambient-glow-2: rgba(250, 204, 21, 0.11);
+    --ambient-glow-3: rgba(226, 232, 240, 0.22);
+  }
+
+  :root[data-time-segment="afternoon"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(242, 251, 247, 0.99) 0%, rgba(233, 246, 242, 0.95) 34%, rgba(226, 239, 242, 0.9) 62%, rgba(246, 250, 249, 1) 100%);
+    --ambient-glow-1: rgba(16, 185, 129, 0.1);
+    --ambient-glow-2: rgba(59, 130, 246, 0.1);
+    --ambient-glow-3: rgba(191, 219, 254, 0.2);
+  }
+
+  :root[data-time-segment="dusk"] {
+    --ambient-backdrop-base: radial-gradient(circle at top left, rgba(255, 245, 238, 0.99) 0%, rgba(255, 236, 225, 0.95) 34%, rgba(252, 228, 214, 0.9) 62%, rgba(255, 247, 241, 1) 100%);
+    --ambient-glow-1: rgba(249, 115, 22, 0.14);
+    --ambient-glow-2: rgba(244, 114, 182, 0.12);
+    --ambient-glow-3: rgba(251, 191, 36, 0.18);
+  }
+
+  :root[data-season="spring"] {
+    --ambient-season-glow-1: rgba(74, 222, 128, 0.09);
+    --ambient-season-glow-2: rgba(244, 114, 182, 0.07);
+  }
+
+  :root[data-season="summer"] {
+    --ambient-season-glow-1: rgba(56, 189, 248, 0.09);
+    --ambient-season-glow-2: rgba(250, 204, 21, 0.08);
+  }
+
+  :root[data-season="autumn"] {
+    --ambient-season-glow-1: rgba(249, 115, 22, 0.09);
+    --ambient-season-glow-2: rgba(245, 158, 11, 0.07);
+  }
+
+  :root[data-season="winter"] {
+    --ambient-season-glow-1: rgba(125, 211, 252, 0.08);
+    --ambient-season-glow-2: rgba(165, 180, 252, 0.07);
+  }
+
+  :root[data-season="spring"]:not(.dark) {
+    --ambient-glow-3: rgba(216, 248, 227, 0.34);
+  }
+
+  :root[data-season="summer"]:not(.dark) {
+    --ambient-glow-3: rgba(219, 242, 255, 0.34);
+  }
+
+  :root[data-season="autumn"]:not(.dark) {
+    --ambient-glow-3: rgba(255, 226, 197, 0.34);
+  }
+
+  :root[data-season="winter"]:not(.dark) {
+    --ambient-glow-3: rgba(226, 236, 255, 0.34);
+  }
+
+  :root[data-ambient-intensity="subtle"] {
+    --ambient-before-opacity: 0.74;
+    --ambient-grid-opacity: 0.28;
+    --ambient-panel-after-opacity: 0.54;
+  }
+
+  :root.dark[data-ambient-intensity="subtle"] {
+    --ambient-grid-opacity: 0.5;
+  }
+
+  :root[data-ambient-intensity="balanced"] {
+    --ambient-before-opacity: 1.08;
+    --ambient-panel-after-opacity: 0.85;
+  }
+
+  :root[data-ambient-intensity="vivid"] {
+    --ambient-before-opacity: 1.28;
+    --ambient-grid-opacity: 0.72;
+    --ambient-panel-after-opacity: 1.08;
+  }
+
+  :root.dark[data-ambient-intensity="vivid"] {
+    --ambient-grid-opacity: 1;
+  }
+
+  :root[data-ambient-enabled="false"] {
+    --ambient-glow-1: rgba(71, 85, 105, 0.08);
+    --ambient-glow-2: rgba(148, 163, 184, 0.1);
+    --ambient-glow-3: rgba(203, 213, 225, 0.16);
+    --ambient-season-glow-1: transparent;
+    --ambient-season-glow-2: transparent;
+    --ambient-before-opacity: 0.78;
+    --ambient-grid-opacity: 0.22;
+    --ambient-panel-after-opacity: 0.62;
+    --ambient-animation-state: paused;
+  }
+
+  .brand-app-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .brand-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: var(--ambient-backdrop-base);
+    transition: background 2.1s ease, opacity 1.2s ease;
+  }
+
+  .brand-backdrop::before,
+  .brand-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: -18%;
+    pointer-events: none;
+    will-change: transform, opacity;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .brand-backdrop::before {
+    background:
+      radial-gradient(circle at 18% 20%, var(--ambient-glow-1), transparent 28%),
+      radial-gradient(circle at 80% 18%, var(--ambient-glow-2), transparent 24%),
+      radial-gradient(circle at 50% 84%, var(--ambient-glow-3), transparent 32%),
+      radial-gradient(circle at 24% 76%, var(--ambient-season-glow-1), transparent 24%),
+      radial-gradient(circle at 86% 76%, var(--ambient-season-glow-2), transparent 24%);
+    filter: blur(22px);
+    animation: brand-gradient-drift 28s ease-in-out infinite;
+    animation-play-state: var(--ambient-animation-state);
+    opacity: var(--ambient-before-opacity);
+    transition: background 1.8s ease, filter 1.4s ease, opacity 1.4s ease;
+  }
+
+  .brand-backdrop::after {
+    background-image:
+      linear-gradient(to right, var(--ambient-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ambient-grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.12));
+    animation: brand-grid-pan 24s linear infinite;
+    animation-play-state: var(--ambient-animation-state);
+    opacity: var(--ambient-grid-opacity);
+    transition: background-image 1.6s ease, opacity 1.2s ease;
+  }
+
+  .brand-public-shell .brand-backdrop::before {
+    filter: blur(32px);
+  }
+
+  .brand-console-shell .brand-backdrop::before {
+    filter: blur(18px);
+    animation-duration: 34s;
+    opacity: 0.85;
+  }
+
+  .brand-console-shell .brand-backdrop::after {
+    animation: none;
+    opacity: 0.22;
+  }
+
+  .brand-panel-grid {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-panel-grid::before,
+  .brand-panel-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .brand-panel-grid::before {
+    background-image:
+      linear-gradient(to right, var(--ambient-panel-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ambient-panel-grid-line) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08));
+    opacity: 0.6;
+    transition: background-image 1.4s ease, opacity 1.2s ease;
+  }
+
+  .brand-panel-grid::after {
+    inset: -20%;
+    background:
+      radial-gradient(circle at 18% 22%, var(--ambient-panel-glow-1), transparent 18%),
+      radial-gradient(circle at 82% 18%, var(--ambient-panel-glow-2), transparent 18%),
+      radial-gradient(circle at 24% 78%, var(--ambient-season-glow-1), transparent 22%);
+    filter: blur(18px);
+    opacity: 0.85;
+    opacity: var(--ambient-panel-after-opacity);
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    animation: brand-gradient-drift 30s ease-in-out infinite;
+    animation-play-state: var(--ambient-animation-state);
+    transition: background 1.8s ease, filter 1.4s ease, opacity 1.4s ease;
+  }
+}
+
+@media (max-width: 768px) {
+  .brand-backdrop::before {
+    animation-duration: 36s;
+    filter: blur(18px);
+  }
+
+  .brand-backdrop::after {
+    animation: none;
+    opacity: 0.28;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-backdrop::before,
+  .brand-backdrop::after {
+    animation: none !important;
   }
 }

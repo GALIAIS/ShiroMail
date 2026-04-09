@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/shiromail-mark.svg?v=20260407" />
+    <link rel="icon" type="image/svg+xml" href="/shiromail-mark.svg?v=20260409" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (() => {
@@ -18,10 +18,40 @@
                 ? "dark"
                 : "light"
               : theme;
+          const now = new Date();
+          const hour = now.getHours();
+          const month = now.getMonth();
+          const timeSegment =
+            hour < 2
+              ? "midnight"
+              : hour < 5
+                ? "predawn"
+                : hour < 8
+                  ? "dawn"
+                  : hour < 11
+                    ? "morning"
+                    : hour < 14
+                      ? "noon"
+                      : hour < 18
+                        ? "afternoon"
+                        : hour < 22
+                          ? "dusk"
+                          : "midnight";
+          const season =
+            month >= 2 && month <= 4
+              ? "spring"
+              : month >= 5 && month <= 7
+                ? "summer"
+                : month >= 8 && month <= 10
+                  ? "autumn"
+                  : "winter";
           document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
           document.documentElement.style.colorScheme = resolvedTheme;
           document.documentElement.dataset.theme = resolvedTheme;
           document.documentElement.dataset.themePreference = theme;
+          document.documentElement.dataset.timeSegment = timeSegment;
+          document.documentElement.dataset.season = season;
+          document.documentElement.dataset.ambientTheme = `${season}-${timeSegment}`;
           document.documentElement.lang = storedLanguage === "en-US" ? "en-US" : "zh-CN";
         } catch {}
       })();

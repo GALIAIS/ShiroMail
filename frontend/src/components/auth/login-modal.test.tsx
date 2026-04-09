@@ -117,9 +117,12 @@ describe("LoginModal", () => {
         siteName: "Shiro Email",
         slogan: "Enterprise temporary mail platform",
         supportEmail: "support@shiro.local",
+        siteIconUrl: "",
         appBaseUrl: "http://localhost:5173",
         defaultLanguage: "zh-CN",
         defaultTimeZone: "Asia/Shanghai",
+        ambientThemeEnabled: true,
+        ambientThemeIntensity: "balanced",
       },
       mailDns: {
         mxTarget: "mail.shiro.local",
@@ -310,7 +313,7 @@ describe("LoginModal", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Secret123!" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Enter workspace" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("Two-factor verification")).toBeInTheDocument();
 

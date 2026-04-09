@@ -5,6 +5,10 @@ import {
   type ResolvedTheme,
   type ThemeMode,
 } from "@/lib/preferences";
+import {
+  getAmbientThemeSnapshot,
+  getMillisecondsUntilNextAmbientThemeCheck,
+} from "@/lib/ambient-theme";
 
 type ThemeContextValue = {
   theme: ThemeMode;
@@ -51,6 +55,18 @@ function applyTheme(theme: ThemeMode, systemTheme: ResolvedTheme) {
   return resolvedTheme;
 }
 
+function applyAmbientTheme() {
+  const root = document.documentElement;
+  if (root.dataset.ambientPreview === "true") {
+    return;
+  }
+  const snapshot = getAmbientThemeSnapshot();
+
+  root.dataset.timeSegment = snapshot.timeSegment;
+  root.dataset.season = snapshot.season;
+  root.dataset.ambientTheme = snapshot.themeKey;
+}
+
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [theme, setThemeState] = useState<ThemeMode>(() => readBootstrappedThemeState().theme);
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => readBootstrappedThemeState().systemTheme);
@@ -86,7 +102,32 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   useLayoutEffect(() => {
     applyTheme(theme, systemTheme);
+    applyAmbientTheme();
   }, [systemTheme, theme]);
+
+  useEffect(() => {
+    let timeoutId = 0;
+
+    const syncAmbientTheme = () => {
+      applyAmbientTheme();
+      timeoutId = window.setTimeout(syncAmbientTheme, getMillisecondsUntilNextAmbientThemeCheck());
+    };
+
+    timeoutId = window.setTimeout(syncAmbientTheme, getMillisecondsUntilNextAmbientThemeCheck());
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        applyAmbientTheme();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   const value = useMemo<ThemeContextValue>(
     () => ({

@@ -24,7 +24,7 @@ import {
   getMailDeliveryErrorMessage,
   type MailDeliveryDiagnosticPayload,
 } from "@/lib/http";
-import { validateEmailAddress, validateHTTPUrl, validateIntegerRange, validateRequiredText, validateSelection } from "@/lib/validation";
+import { validateEmailAddress, validateHTTPUrl, validateImageSourceUrl, validateIntegerRange, validateRequiredText, validateSelection } from "@/lib/validation";
 import {
   deleteAdminConfig,
   fetchAdminAPILimitsSettings,
@@ -115,6 +115,10 @@ function parseSiteIdentity(sections: SettingsSection[]): SiteIdentitySettings {
       item.value.supportEmail,
       defaultSiteIdentitySettings.supportEmail,
     ),
+    siteIconUrl: readString(
+      item.value.siteIconUrl,
+      defaultSiteIdentitySettings.siteIconUrl,
+    ),
     appBaseUrl: readString(
       item.value.appBaseUrl,
       defaultSiteIdentitySettings.appBaseUrl,
@@ -126,6 +130,14 @@ function parseSiteIdentity(sections: SettingsSection[]): SiteIdentitySettings {
     defaultTimeZone: readString(
       item.value.defaultTimeZone,
       defaultSiteIdentitySettings.defaultTimeZone,
+    ),
+    ambientThemeEnabled: readBoolean(
+      item.value.ambientThemeEnabled,
+      defaultSiteIdentitySettings.ambientThemeEnabled,
+    ),
+    ambientThemeIntensity: readString(
+      item.value.ambientThemeIntensity,
+      defaultSiteIdentitySettings.ambientThemeIntensity,
     ),
   };
 }
@@ -478,9 +490,13 @@ function validateAdminSettingsSnapshot(input: {
   const siteError =
     validateRequiredText("站点名称", input.siteIdentity.siteName, { minLength: 2, maxLength: 80 }) ||
     validateEmailAddress(input.siteIdentity.supportEmail) ||
-    validateHTTPUrl(input.siteIdentity.appBaseUrl) ||
+    (input.siteIdentity.siteIconUrl.trim().length > 0
+      ? validateImageSourceUrl(input.siteIdentity.siteIconUrl, "站点图标 URL")
+      : null) ||
+    validateHTTPUrl(input.siteIdentity.appBaseUrl, "站点地址") ||
     validateRequiredText("默认语言", input.siteIdentity.defaultLanguage, { minLength: 2, maxLength: 16 }) ||
-    validateRequiredText("默认时区", input.siteIdentity.defaultTimeZone, { minLength: 2, maxLength: 64 });
+    validateRequiredText("默认时区", input.siteIdentity.defaultTimeZone, { minLength: 2, maxLength: 64 }) ||
+    validateSelection("动态主题强度", input.siteIdentity.ambientThemeIntensity, ["subtle", "balanced", "vivid"]);
   if (siteError) {
     return siteError;
   }
@@ -571,9 +587,9 @@ function validateAdminSettingsSnapshot(input: {
       const endpointError =
         validateRequiredText(`${providerName} Client ID`, provider.clientId, { minLength: 1, maxLength: 255 }) ||
         validateRequiredText(`${providerName} Client Secret`, provider.clientSecret, { minLength: 1, maxLength: 255 }) ||
-        validateHTTPUrl(provider.authorizationUrl) ||
-        validateHTTPUrl(provider.tokenUrl) ||
-        validateHTTPUrl(provider.userInfoUrl);
+        validateHTTPUrl(provider.authorizationUrl, `${providerName} Authorization URL`) ||
+        validateHTTPUrl(provider.tokenUrl, `${providerName} Token URL`) ||
+        validateHTTPUrl(provider.userInfoUrl, `${providerName} UserInfo URL`);
       if (endpointError) {
         return endpointError;
       }

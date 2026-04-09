@@ -16,9 +16,12 @@ export type SiteIdentitySettings = {
   siteName: string;
   slogan: string;
   supportEmail: string;
+  siteIconUrl: string;
   appBaseUrl: string;
   defaultLanguage: string;
   defaultTimeZone: string;
+  ambientThemeEnabled: boolean;
+  ambientThemeIntensity: string;
 };
 
 export type AuthRegistrationSettings = {

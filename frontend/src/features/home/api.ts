@@ -5,9 +5,12 @@ export type PublicSiteSettings = {
     siteName: string;
     slogan: string;
     supportEmail: string;
+    siteIconUrl: string;
     appBaseUrl: string;
     defaultLanguage: string;
     defaultTimeZone: string;
+    ambientThemeEnabled: boolean;
+    ambientThemeIntensity: string;
   };
   mailDns: {
     mxTarget: string;

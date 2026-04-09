@@ -41,20 +41,45 @@ export function validateEmailAddress(value: string | null | undefined) {
   return null;
 }
 
-export function validateHTTPUrl(value: string | null | undefined) {
+export function validateHTTPUrl(value: string | null | undefined, label = "回调地址") {
   const normalized = normalizeText(value);
   if (!normalized) {
-    return "回调地址不能为空。";
+    return `${label}不能为空。`;
   }
   try {
     const parsed = new URL(normalized);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "回调地址必须使用 http:// 或 https://。";
+      return `${label}必须使用 http:// 或 https://。`;
     }
     return null;
   } catch {
-    return "回调地址格式不正确。";
+    return `${label}格式不正确。`;
   }
+}
+
+export function validateHTTPOrRootUrl(value: string | null | undefined, label = "链接地址") {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return `${label}不能为空。`;
+  }
+  if (normalized.startsWith("/")) {
+    return null;
+  }
+  return validateHTTPUrl(normalized, label);
+}
+
+export function validateImageSourceUrl(value: string | null | undefined, label = "图片地址") {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return `${label}不能为空。`;
+  }
+  if (normalized.startsWith("/")) {
+    return null;
+  }
+  if (/^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(normalized)) {
+    return null;
+  }
+  return validateHTTPUrl(normalized, label);
 }
 
 export function normalizeCommaSeparatedList(value: string | null | undefined) {

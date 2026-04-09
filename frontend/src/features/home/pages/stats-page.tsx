@@ -12,6 +12,10 @@ export function StatsPage() {
     staleTime: 15_000,
   });
   const stats = statsQuery.data;
+  const formattedUpdatedAt =
+    typeof stats?.updatedAt === "string" && !Number.isNaN(Date.parse(stats.updatedAt))
+      ? new Date(stats.updatedAt).toLocaleString()
+      : null;
   const metricCards = [
     { title: "活跃域名", value: stats?.activeDomainCount ?? 0, icon: Globe },
     { title: "活跃邮箱", value: stats?.activeMailboxCount ?? 0, icon: Database },
@@ -49,8 +53,8 @@ export function StatsPage() {
             ? "正在读取真实统计数据..."
             : statsQuery.isError
               ? "拉取统计数据失败，请点击上方“刷新数据”重试。"
-            : stats
-              ? `最近更新时间：${new Date(stats.updatedAt).toLocaleString()}`
+            : formattedUpdatedAt
+              ? `最近更新时间：${formattedUpdatedAt}`
               : "暂时无法获取实时统计数据，请稍后刷新重试。"}
         </div>
       </PublicSection>

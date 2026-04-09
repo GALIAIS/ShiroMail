@@ -211,6 +211,16 @@ POST /api/v1/mailboxes
 - Typical inputs include:
   - domainId
   - localPart (optional if the backend can generate one)
+- Request body contract (strict):
+  - `domainId` must be a positive integer
+  - `expiresInHours` must be a positive integer
+  - `localPart` is optional
+  - field names are camelCase (`domainId`, `expiresInHours`), not snake_case
+- Common 400 cause:
+  - missing required fields
+  - `expiresInHours` set to 0
+  - wrong field names (`domain_id`, `expires_in_hours`)
+  - wrong JSON value types
 
 POST /api/v1/mailboxes/:id/extend
 - User session or API key
@@ -308,6 +318,11 @@ Domain access
 - Domain visibility may depend on ownership, admin role, and API key bindings.
 - If a mailbox creation request fails, first verify that the chosen domain is accessible to the current auth context.
 
+Request validation behavior
+- Several endpoints return a generic `400 {"message":"invalid request"}` when JSON binding fails.
+- This usually means the request shape is wrong, not that permissions failed.
+- Validate payload keys, types, and required numeric values before retrying.
+
 Provider and DNS operations
 - DNS preview and DNS apply are separate steps.
 - Do not assume a preview automatically persists or applies changes.
@@ -328,6 +343,17 @@ If mailbox creation fails
 - Confirm the chosen domain is visible to the current session or API key
 - Check whether the API key is domain-bound
 - If using an admin key, verify that admin-only/private domain access is enabled in backend policy
+- Then validate payload contract:
+  - `domainId` > 0
+  - `expiresInHours` > 0
+  - `Content-Type: application/json`
+  - camelCase keys only
+- If still failing, inspect response status in this order:
+  - 400: payload/JSON shape issue
+  - 401: missing/invalid auth
+  - 403: key scope or domain binding denied
+  - 404: referenced domain/mailbox not found
+  - 429: rate limit exceeded
 
 If messages seem missing
 - Poll the mailbox messages endpoint for a short window
@@ -356,6 +382,93 @@ The expected best-case result is:
 - extraction results already contain the verification code or target link
 
 
+Practical Request/Response Snippets
+-----------------------------------
+
+Create mailbox (recommended baseline)
+```http
+POST /api/v1/mailboxes
+Authorization: Bearer <API_KEY_OR_ACCESS_TOKEN>
+Content-Type: application/json
+
+{
+  "domainId": 2,
+  "expiresInHours": 24,
+  "localPart": "agentbox"
+}
+```
+
+Typical success response
+```json
+{
+  "id": 15,
+  "userId": 1,
+  "domainId": 2,
+  "domain": "example.test",
+  "localPart": "agentbox",
+  "address": "agentbox@example.test",
+  "status": "active",
+  "expiresAt": "2026-04-10T14:34:01Z",
+  "createdAt": "2026-04-09T14:34:01Z",
+  "updatedAt": "2026-04-09T14:34:01Z"
+}
+```
+
+Mailbox list polling
+```http
+GET /api/v1/mailboxes/:mailboxId/messages
+Authorization: Bearer <TOKEN>
+```
+
+Extraction-first read
+```http
+GET /api/v1/mailboxes/:mailboxId/messages/:messageId/extractions
+Authorization: Bearer <TOKEN>
+```
+
+Fallback detail read
+```http
+GET /api/v1/mailboxes/:mailboxId/messages/:messageId
+Authorization: Bearer <TOKEN>
+```
+
+Raw MIME fallback (last resort)
+```http
+GET /api/v1/mailboxes/:mailboxId/messages/:messageId/raw/parsed
+Authorization: Bearer <TOKEN>
+```
+
+
+Rate Limit and Reliability Tips for Agents
+------------------------------------------
+
+- Prefer short polling loops (for example 2–5 seconds) instead of one long sleep.
+- Add idempotent retries for 429/5xx with exponential backoff.
+- Keep mailboxId/messageId as explicit state; never infer by index only.
+- Use extraction endpoint first to minimize payload size and token usage.
+- Stop polling immediately after mailbox release or expiration.
+- For high-volume runs, spread mailbox create requests over time to avoid burst limits.
+
+
+API-Key Scope Checklist
+-----------------------
+
+Before large automation runs, confirm the key can access:
+- `mailboxes.read`
+- `mailboxes.write`
+- `messages.read`
+- `messages.write` (only if calling injection endpoints)
+- `messages.attachments.read` (only if downloading attachments)
+- `domains.read` (needed to select valid domain IDs)
+
+If domain bindings are configured on the key:
+- mailbox creation will be limited to bound domains
+- reading messages from unbound domain mailboxes may be rejected
+
+If no domain bindings are configured:
+- key should be treated as all-domain access within that user/role scope
+
+
 Usage Advice for Humans Feeding This File to an LLM
 ---------------------------------------------------
 
@@ -367,4 +480,3 @@ When giving this file to a model, also provide:
 
 Good prompt example:
 "Use this ShiroMail API companion plus my API key to create a mailbox on domain X, poll for the newest message, and return the extracted verification code."
-

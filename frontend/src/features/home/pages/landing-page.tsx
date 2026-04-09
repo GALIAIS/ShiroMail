@@ -64,36 +64,36 @@ export function LandingPage() {
   const previewSignals = [
     {
       title: t("landing.preview.domainPoolTitle"),
-      body: siteStats ? `${siteStats.activeDomainCount.toLocaleString()}` : t("landing.preview.domainPoolBody"),
+      body: siteStats ? `${(siteStats.activeDomainCount ?? 0).toLocaleString()}` : t("landing.preview.domainPoolBody"),
     },
     {
       title: t("landing.preview.realtimeTitle"),
-      body: siteStats ? `${siteStats.todayMessageCount.toLocaleString()}` : t("landing.preview.realtimeBody"),
+      body: siteStats ? `${(siteStats.todayMessageCount ?? 0).toLocaleString()}` : t("landing.preview.realtimeBody"),
     },
     {
       title: t("landing.preview.permissionTitle"),
-      body: siteStats ? `${siteStats.totalUserCount.toLocaleString()}` : t("landing.preview.permissionBody"),
+      body: siteStats ? `${(siteStats.totalUserCount ?? 0).toLocaleString()}` : t("landing.preview.permissionBody"),
     },
   ];
   const previewMessages = [
     {
       title: t("landing.preview.message1Title"),
-      from: siteSettings?.identity.supportEmail || "support@example.com",
+      from: siteSettings?.identity?.supportEmail || "support@example.com",
       time: t("landing.preview.justNow"),
     },
     {
       title: t("landing.preview.message2Title"),
-      from: `system@${(siteSettings?.identity.siteName || "shiro.email").toLowerCase().replace(/\s+/g, "-")}`,
+      from: `system@${(siteSettings?.identity?.siteName || "shiro.email").toLowerCase().replace(/\s+/g, "-")}`,
       time: t("landing.preview.minutesAgo"),
     },
     {
       title: t("landing.preview.message3Title"),
-      from: siteSettings?.identity.supportEmail || "ops@shiro.email",
+      from: siteSettings?.identity?.supportEmail || "ops@shiro.email",
       time: t("landing.preview.today"),
     },
   ];
   const sampleDomain =
-    (siteSettings?.identity.siteName || "shiro.email").toLowerCase().replace(/\s+/g, "-") || "shiro.email";
+    (siteSettings?.identity?.siteName || "shiro.email").toLowerCase().replace(/\s+/g, "-") || "shiro.email";
   const sampleAddress = `inbox@${sampleDomain}`;
   const heroFacts = [
     { label: t("landing.heroFacts.unifiedLoginLabel"), value: t("landing.heroFacts.unifiedLoginValue") },
@@ -114,6 +114,10 @@ export function LandingPage() {
       body: t("landing.faq.roleBody"),
     },
   ];
+  const formattedStatsUpdatedAt =
+    typeof siteStats?.updatedAt === "string" && !Number.isNaN(Date.parse(siteStats.updatedAt))
+      ? new Date(siteStats.updatedAt).toLocaleString()
+      : null;
 
   return (
     <PublicShell
@@ -187,8 +191,8 @@ export function LandingPage() {
               <div className="text-[11px] leading-5 text-muted-foreground">
                 {siteStatsQuery.isLoading
                   ? "正在同步实时数据..."
-                  : siteStats
-                    ? `最近更新：${new Date(siteStats.updatedAt).toLocaleString()}`
+                  : formattedStatsUpdatedAt
+                    ? `最近更新：${formattedStatsUpdatedAt}`
                     : "暂时无法获取实时数据"}
               </div>
 

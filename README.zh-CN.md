@@ -1,7 +1,7 @@
 # ShiroMail
 
 <p align="center">
-  <img src="docs/assets/shiromail-mark.svg" alt="ShiroMail logo" width="96" height="96" />
+  <img src="frontend/public/shiromail-mark.svg" alt="ShiroMail logo" width="96" height="96" />
 </p>
 
 <p align="center">

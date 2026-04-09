@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { SiteBrandMark } from "@/components/brand/site-brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,10 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSiteBranding } from "@/hooks/use-site-branding";
 import { useAutoDismiss } from "@/hooks/use-auto-dismiss";
 import { composePageTitle, usePageTitle } from "@/hooks/use-page-title";
-import { useSiteName } from "@/hooks/use-site-name";
-import { ArrowRight, KeyRound, Shield, Sparkles } from "lucide-react";
+import { ArrowRight, KeyRound, Shield } from "lucide-react";
 import {
   type AuthSettings,
   getAuthErrorMessage,
@@ -70,7 +71,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   useAutoDismiss(notice, () => setNotice(null));
 
   const authSettings = authSettingsQuery.data;
-  const siteName = useSiteName();
+  const { siteName, siteIconUrl } = useSiteBranding();
   const oauthProviders = Object.entries(
     authSettings?.oauthProviders ?? {},
   ) as Array<[string, AuthSettings["oauthProviders"][string]]>;
@@ -287,18 +288,21 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 overflow-hidden p-0 data-[state=open]:duration-300 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95">
-        <div className="relative overflow-hidden">
-          <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-muted/40 blur-3xl" />
+        <div className="brand-panel-grid relative overflow-hidden bg-background/94">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background via-background/85 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/92 via-background/72 to-transparent" />
 
           <div className="space-y-5 p-5 sm:p-6">
-            <DialogHeader className="space-y-3 text-left motion-safe:animate-in motion-safe:slide-in-from-top-2 motion-safe:fade-in-0">
+            <DialogHeader className="relative space-y-3 rounded-2xl border border-border/60 bg-background/78 p-4 text-left shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl motion-safe:animate-in motion-safe:slide-in-from-top-2 motion-safe:fade-in-0">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/30">
-                    <Sparkles className="size-4" />
+                  <div className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-card/90 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+                    <SiteBrandMark iconUrl={siteIconUrl} imageClassName="size-5" siteName={siteName} />
                   </div>
-                  <p className="text-sm font-semibold tracking-wide">{siteName}</p>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold tracking-wide">{siteName}</p>
+                    <p className="text-[11px] leading-4 text-muted-foreground">{t("publicShell.subtitle")}</p>
+                  </div>
                 </div>
                 <Badge className="w-fit rounded-full" variant="outline">
                   {t("auth.secureAccess")}
@@ -326,7 +330,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
               </div>
             </DialogHeader>
 
-            <form className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-2 motion-safe:fade-in-0" onSubmit={handleSubmit}>
+            <form className="relative space-y-4 rounded-2xl border border-border/60 bg-background/70 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.05)] backdrop-blur-md motion-safe:animate-in motion-safe:slide-in-from-bottom-2 motion-safe:fade-in-0" onSubmit={handleSubmit}>
             {mode === "login" ? (
               <>
                 <div className="grid gap-2">
@@ -538,7 +542,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-border/60 bg-muted/15 p-3">
+                <div className="rounded-2xl border border-border/60 bg-muted/12 p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">
@@ -580,7 +584,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/10 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/10 px-3 py-2.5">
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">{t("auth.backToLogin")}</p>
                     <p className="text-xs leading-5 text-muted-foreground">
@@ -604,7 +608,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
               </div>
             )}
             </form>
-            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1">
+            <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/78 px-3 py-2 text-xs text-muted-foreground shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur-md motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1">
               <Shield className="size-3.5" />
               <span>{t("auth.secureAccess")}</span>
             </div>

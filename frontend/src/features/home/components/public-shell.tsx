@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { SiteBrandMark } from "@/components/brand/site-brand-mark";
 import { LoginModal } from "../../../components/auth/login-modal";
 import { composePageTitle, usePageTitle } from "@/hooks/use-page-title";
 import { HeaderPreferences } from "@/components/preferences/header-preferences";
@@ -13,6 +14,7 @@ import { createRoutePrefetchHandlers } from "@/app/prefetch-route";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { fetchPublicSiteSettings } from "../api";
+import { resolveSiteIconUrl } from "@/hooks/use-site-branding";
 
 const publicNavItems = [
   { labelKey: "nav.public.features", href: "/#features", match: "/" },
@@ -48,7 +50,8 @@ export function PublicShell({ children, hero, pageClassName }: PublicShellProps)
   });
 
   const siteSettings = siteSettingsQuery.data;
-  const siteName = siteSettings?.identity.siteName || "Shiro Email";
+  const siteName = siteSettings?.identity?.siteName || "Shiro Email";
+  const siteIconUrl = resolveSiteIconUrl(siteSettings?.identity?.siteIconUrl);
   const pageTitle = (() => {
     if (location.pathname === "/") {
       return siteName;
@@ -87,13 +90,14 @@ export function PublicShell({ children, hero, pageClassName }: PublicShellProps)
   }, [location.hash, location.pathname]);
 
   return (
-    <div className={cn("min-h-screen bg-background text-foreground", pageClassName)}>
-      <div className="mx-auto flex min-h-screen max-w-[1240px] flex-col px-4 pb-8 sm:px-6 lg:px-8">
-        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95">
-          <div className="flex h-14 items-center gap-3">
+    <div className={cn("brand-app-shell brand-public-shell min-h-screen bg-background text-foreground", pageClassName)}>
+      <div aria-hidden className="brand-backdrop" />
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1240px] flex-col px-4 pb-8 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-40 mb-3 rounded-b-2xl border border-border/60 border-t-transparent bg-background/78 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/72">
+          <div className="flex h-14 items-center gap-3 px-3 sm:px-4">
             <Link {...homePrefetchHandlers} className="flex min-w-0 items-center gap-3" to="/">
-              <div className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-card">
-                <img alt={siteName} className="size-4.5" src="/shiromail-mark.svg?v=20260407" />
+              <div className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-card/88 shadow-[0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur">
+                <SiteBrandMark iconUrl={siteIconUrl} imageClassName="size-5" siteName={siteName} />
               </div>
               <div className="grid min-w-0 gap-0.5">
                 <span className="truncate text-sm font-semibold">
@@ -151,7 +155,7 @@ export function PublicShell({ children, hero, pageClassName }: PublicShellProps)
             </div>
           </div>
 
-          <nav aria-label="公开站移动导航" className="flex gap-2 overflow-x-auto border-t border-border/60 py-2 md:hidden">
+          <nav aria-label="公开站移动导航" className="flex gap-2 overflow-x-auto border-t border-border/60 px-3 py-2 md:hidden sm:px-4">
             {publicNavItems.map((item) => {
               const active = location.pathname === item.match;
               const label = t(item.labelKey);
