@@ -144,6 +144,10 @@ npm run test
 
 本项目已在 [LINUX DO 社区](https://linux.do) 发布，感谢社区的支持与反馈。
 
+## 参考项目
+
+本项目也参考了 [Inbucket](https://github.com/inbucket/inbucket) 这一开源临时邮箱 / 邮件测试项目。
+
 ## 说明
 
 这是一个持续迭代中的应用仓库。如果要用于公网环境，请先审查默认配置、鉴权策略、域名与 SMTP 部署方式后再上线。

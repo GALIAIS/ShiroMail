@@ -144,6 +144,10 @@ npm run test
 
 This project has been published on the [LINUX DO community](https://linux.do), and we appreciate the community's support and feedback.
 
+## Open-source References
+
+This project also references [Inbucket](https://github.com/inbucket/inbucket), an open-source disposable inbox and mail testing project.
+
 ## License / Status
 
 This repository is an actively evolving application codebase. Review configuration and operational defaults before using it in a public environment.
