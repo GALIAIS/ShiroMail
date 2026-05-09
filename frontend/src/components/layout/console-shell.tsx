@@ -29,6 +29,7 @@ import { LogOut, RefreshCw } from "lucide-react";
 import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
+import { ConsoleBreadcrumb } from "./console-breadcrumb";
 
 type ConsoleShellProps = {
   brand: string;
@@ -179,7 +180,12 @@ export function ConsoleShell({
               <div className="hidden min-w-0 flex-1 items-center gap-3 md:flex">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{currentLabel}</p>
-                  <p className="truncate text-xs text-muted-foreground">{roleLabel}</p>
+                  <ConsoleBreadcrumb
+                    sections={sections}
+                    topNav={topNav}
+                    rootLabel={brand}
+                    rootPath={role === "admin" ? "/admin" : "/dashboard"}
+                  />
                 </div>
               </div>
 
