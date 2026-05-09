@@ -186,12 +186,20 @@ func (c *Controller) SMTPMetrics(ctx *gin.Context) {
 }
 
 func (c *Controller) ListAudit(ctx *gin.Context) {
-	items, err := c.service.ListAudit(ctx)
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "20"))
+	action := ctx.Query("action")
+
+	result, err := c.service.ListAuditPaginated(ctx, AuditListOptions{
+		Page:   page,
+		Size:   pageSize,
+		Action: action,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list audit logs"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"items": items})
+	ctx.JSON(http.StatusOK, result)
 }
 
 func currentUserID(ctx *gin.Context) (uint64, bool) {

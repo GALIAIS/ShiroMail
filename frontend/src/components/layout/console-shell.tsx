@@ -26,11 +26,15 @@ import {
 import { createRoutePrefetchHandlers } from "@/app/prefetch-route";
 import { cn } from "@/lib/utils";
 import { LogOut, RefreshCw, Search } from "lucide-react";
-import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
 import { ConsoleBreadcrumb } from "./console-breadcrumb";
 import { GlobalSearchDialog, useGlobalSearchShortcut } from "./global-search-dialog";
+import { NotificationDropdown } from "./notification-dropdown";
+import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket";
+import { useNotificationStore } from "@/stores/notification-store";
+import { showInfo } from "@/lib/toast";
 
 type ConsoleShellProps = {
   brand: string;
@@ -67,6 +71,19 @@ export function ConsoleShell({
   const roleSubtitle = t(role === "admin" ? "console.subtitle.admin" : "console.subtitle.user");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const searchState = useGlobalSearchShortcut();
+
+  const addNotification = useNotificationStore((s) => s.addNotification);
+  const handleWsMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      const payload = msg.payload as Record<string, unknown> | undefined;
+      const title = (payload?.title as string) ?? msg.type;
+      const body = (payload?.body as string) ?? "";
+      addNotification({ type: msg.type, title, body });
+      showInfo(title);
+    },
+    [addNotification],
+  );
+  useWebSocket({ onMessage: handleWsMessage });
 
   const avatarLabel = username.slice(0, 1).toUpperCase();
   const currentLabel = useMemo(() => {
@@ -201,6 +218,7 @@ export function ConsoleShell({
                 >
                   <Search className="size-4" />
                 </Button>
+                <NotificationDropdown />
                 <HeaderPreferences />
                 <Button
                   aria-label={t("common.refresh")}

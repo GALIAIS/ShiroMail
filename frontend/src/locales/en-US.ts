@@ -71,6 +71,7 @@ const translation = {
       webhooks: "Webhooks",
       notices: "Notices",
       jobs: "Jobs",
+      auditLogs: "Audit Log",
       resources: "Resources",
       docs: "Docs",
       account: "Account",
@@ -483,6 +484,11 @@ const translation = {
     hint: "Type at least 2 characters to search",
     noResults: "No matching messages found",
   },
+  mailboxSearch: {
+    placeholder: "Search subject, sender, or content...",
+    noResults: "No matching messages",
+    noResultsHint: "Try a different keyword.",
+  },
   settings: {
     description:
       "Update the display name, language preference, and refresh cadence for the console.",
@@ -492,6 +498,13 @@ const translation = {
     language: "Language",
     timezone: "Timezone",
     autoRefresh: "Auto-refresh seconds",
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications",
+    markAllRead: "Mark all as read",
+    clearAll: "Clear all",
+    newMessage: "New message received",
   },
   adminOverview: {
     badge: "Live summary",
@@ -512,6 +525,14 @@ const translation = {
     jobsDescription: "Execution status for backend jobs.",
     noSubject: "(No subject)",
     ok: "Healthy",
+  },
+  audit: {
+    title: "Audit Log",
+    description: "Review admin operation history including changes to domains, mailboxes, settings, and users.",
+    filterLabel: "Filter by action",
+    itemLabel: "audit entries",
+    emptyTitle: "No audit records",
+    emptyDescription: "No audit logs match the current filter.",
   },
 } as const;
 

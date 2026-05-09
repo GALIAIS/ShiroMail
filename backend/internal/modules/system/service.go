@@ -282,6 +282,10 @@ func (s *Service) ListAudit(ctx context.Context) ([]AuditLog, error) {
 	return s.auditRepo.List(ctx)
 }
 
+func (s *Service) ListAuditPaginated(ctx context.Context, opts AuditListOptions) (AuditListResult, error) {
+	return s.auditRepo.ListPaginated(ctx, opts)
+}
+
 func mergeConfigEntries(items []ConfigEntry) []ConfigEntry {
 	index := make(map[string]ConfigEntry, len(items))
 	for _, item := range defaultConfigEntries() {

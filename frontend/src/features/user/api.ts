@@ -595,8 +595,12 @@ export async function applyDomainProviderChangeSet(changeSetId: number) {
   return data;
 }
 
-export async function fetchMailboxMessages(mailboxId: number) {
-  const { data } = await http.get<{ items: MailboxMessageSummaryWire[] }>(`/mailboxes/${mailboxId}/messages`);
+export async function fetchMailboxMessages(mailboxId: number, query?: string) {
+  const params: Record<string, string> = {};
+  if (query) {
+    params.q = query;
+  }
+  const { data } = await http.get<{ items: MailboxMessageSummaryWire[] }>(`/mailboxes/${mailboxId}/messages`, { params });
   return data.items.map(normalizeMailboxMessageSummary);
 }
 

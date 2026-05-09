@@ -263,6 +263,13 @@ export type AuditItem = {
   createdAt: string;
 };
 
+export type AuditListResult = {
+  items: AuditItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 export async function fetchAdminOverview() {
   const { data } = await http.get<AdminOverview>("/admin/overview");
   return data;
@@ -888,8 +895,23 @@ export async function fetchAdminSMTPMetrics() {
 }
 
 export async function fetchAdminAudit() {
-  const { data } = await http.get<{ items: AuditItem[] }>("/admin/audit");
+  const { data } = await http.get<AuditListResult>("/admin/audit");
   return data.items;
+}
+
+export async function fetchAdminAuditPaginated(input?: {
+  page?: number;
+  pageSize?: number;
+  action?: string;
+}) {
+  const { data } = await http.get<AuditListResult>("/admin/audit", {
+    params: {
+      page: input?.page ?? 1,
+      pageSize: input?.pageSize ?? 20,
+      action: input?.action || undefined,
+    },
+  });
+  return data;
 }
 
 function normalizeAdminApiKeyItem(item: ApiKeyItem): ApiKeyItem {

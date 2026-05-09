@@ -71,6 +71,7 @@ const translation = {
       webhooks: "Webhook",
       notices: "公告中心",
       jobs: "任务队列",
+      auditLogs: "审计日志",
       docs: "文档中心",
       account: "账户设置",
       settings: "系统设置",
@@ -462,6 +463,11 @@ const translation = {
     hint: "输入至少 2 个字符开始搜索",
     noResults: "未找到匹配的邮件",
   },
+  mailboxSearch: {
+    placeholder: "搜索主题、发件人或内容...",
+    noResults: "没有匹配的消息",
+    noResultsHint: "尝试换个关键词再搜索。",
+  },
   settings: {
     description: "更新展示名称、语言偏好与控制台刷新频率。",
     loginUsername: "登录账号",
@@ -470,6 +476,13 @@ const translation = {
     language: "语言",
     timezone: "时区",
     autoRefresh: "自动刷新秒数",
+  },
+  notifications: {
+    title: "通知中心",
+    empty: "暂无通知",
+    markAllRead: "全部标为已读",
+    clearAll: "清空全部",
+    newMessage: "收到新消息",
   },
   adminOverview: {
     badge: "实时汇总",
@@ -489,6 +502,14 @@ const translation = {
     jobsDescription: "后台任务执行情况。",
     noSubject: "(无主题)",
     ok: "执行正常",
+  },
+  audit: {
+    title: "审计日志",
+    description: "查看管理员操作记录，包括域名、邮箱、配置、用户等资源的变更轨迹。",
+    filterLabel: "操作类型过滤",
+    itemLabel: "审计记录",
+    emptyTitle: "暂无审计记录",
+    emptyDescription: "当前没有符合筛选条件的审计日志。",
   },
 } as const;
 

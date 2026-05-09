@@ -139,8 +139,22 @@ type JobRepository interface {
 	CountFailed(ctx context.Context) int
 }
 
+type AuditListOptions struct {
+	Page   int
+	Size   int
+	Action string
+}
+
+type AuditListResult struct {
+	Items []AuditLog `json:"items"`
+	Total int64      `json:"total"`
+	Page  int        `json:"page"`
+	Size  int        `json:"pageSize"`
+}
+
 type AuditRepository interface {
 	List(ctx context.Context) ([]AuditLog, error)
+	ListPaginated(ctx context.Context, opts AuditListOptions) (AuditListResult, error)
 	Create(ctx context.Context, actorID uint64, action string, resourceType string, resourceID string, detail map[string]any) (AuditLog, error)
 }
 
@@ -269,6 +283,51 @@ func (r *MemoryAuditRepository) List(_ context.Context) ([]AuditLog, error) {
 		return items[i].ID > items[j].ID
 	})
 	return items, nil
+}
+
+func (r *MemoryAuditRepository) ListPaginated(_ context.Context, opts AuditListOptions) (AuditListResult, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	page := opts.Page
+	if page <= 0 {
+		page = 1
+	}
+	size := opts.Size
+	if size <= 0 {
+		size = 20
+	}
+	if size > 100 {
+		size = 100
+	}
+
+	filtered := make([]AuditLog, 0, len(r.records))
+	for _, item := range r.records {
+		if opts.Action != "" && item.Action != opts.Action {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].ID > filtered[j].ID
+	})
+
+	total := int64(len(filtered))
+	start := (page - 1) * size
+	if start > len(filtered) {
+		start = len(filtered)
+	}
+	end := start + size
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	return AuditListResult{
+		Items: filtered[start:end],
+		Total: total,
+		Page:  page,
+		Size:  size,
+	}, nil
 }
 
 func (r *MemoryAuditRepository) Create(_ context.Context, actorID uint64, action string, resourceType string, resourceID string, detail map[string]any) (AuditLog, error) {

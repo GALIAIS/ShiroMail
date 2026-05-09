@@ -36,6 +36,7 @@ const routePrefetchMap: Record<string, readonly RouteModuleKey[]> = {
   "/admin/docs": ["adminDocs"],
   "/admin/account": ["adminAccount"],
   "/admin/settings": ["adminSettings"],
+  "/admin/audit-logs": ["adminAuditLog"],
 };
 
 const prefetchedKeys = new Set<RouteModuleKey>();

@@ -15,6 +15,7 @@ import {
   MessageSquareText,
   Network,
   Radio,
+  ScrollText,
   Settings,
   SlidersHorizontal,
   UserRound,
@@ -99,6 +100,7 @@ export const adminSidebarSections: ConsoleNavSection[] = [
       { labelKey: "nav.admin.webhooks", to: "/admin/webhooks", icon: Webhook },
       { labelKey: "nav.admin.notices", to: "/admin/notices", icon: Bell },
       { labelKey: "nav.admin.jobs", to: "/admin/jobs", icon: Radio },
+      { labelKey: "nav.admin.auditLogs", to: "/admin/audit-logs", icon: ScrollText },
     ],
   },
   {

@@ -41,6 +41,7 @@ const routeModuleLoaders = {
   adminDocs: () => import("../features/admin/pages/docs-page"),
   adminAccount: () => import("../features/admin/pages/account-page"),
   adminSettings: () => import("../features/admin/pages/settings-page"),
+  adminAuditLog: () => import("../features/admin/pages/audit-log-page"),
 } as const;
 
 export type RouteModuleKey = keyof typeof routeModuleLoaders;

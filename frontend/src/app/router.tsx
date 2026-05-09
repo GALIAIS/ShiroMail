@@ -53,6 +53,7 @@ const AdminJobsPage = lazyRoute("adminJobs", "AdminJobsPage");
 const AdminDocsPage = lazyRoute("adminDocs", "AdminDocsPage");
 const AdminAccountPage = lazyRoute("adminAccount", "AdminAccountPage");
 const AdminSettingsPage = lazyRoute("adminSettings", "AdminSettingsPage");
+const AdminAuditLogPage = lazyRoute("adminAuditLog", "AdminAuditLogPage");
 
 function HomeRoute() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -411,6 +412,14 @@ const router = createBrowserRouter([
         element: (
           <RouteBoundary>
             <AdminSettingsPage />
+          </RouteBoundary>
+        ),
+      },
+      {
+        path: "audit-logs",
+        element: (
+          <RouteBoundary>
+            <AdminAuditLogPage />
           </RouteBoundary>
         ),
       },

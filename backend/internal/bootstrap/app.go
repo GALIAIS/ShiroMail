@@ -368,7 +368,6 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	systemService := system.NewService(state.ConfigRepo, state.JobRepo, state.AuditRepo, spoolList, spoolRetry, smtpMetrics, publicStatsProvider)
 	systemController := system.NewController(systemService)
 	authGuard := middleware.RequireAuth(cfg.JWTSecret)
-	activeUserGuard := middleware.RequireActiveUser(state.AuthRepo)
 	apiKeyGuard := middleware.RequireUserOrAPIKey(cfg.JWTSecret, state.PortalRepo, state.AuthRepo)
 	adminGuard := []gin.HandlerFunc{apiKeyGuard, middleware.RequireRoles("admin")}
 
