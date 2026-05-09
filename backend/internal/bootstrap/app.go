@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -365,7 +366,63 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 		cachedStatsAt = time.Now()
 		return cachedStats, nil
 	})
-	systemService := system.NewService(state.ConfigRepo, state.JobRepo, state.AuditRepo, spoolList, spoolRetry, smtpMetrics, publicStatsProvider)
+	var appStartedAt = time.Now()
+	systemMonitoringProvider := system.SystemMonitoringFunc(func(ctx context.Context) (system.SystemMonitoringSnapshot, error) {
+		snapshot := system.SystemMonitoringSnapshot{}
+
+		smtpSnap := middleware.SnapshotSMTPMetrics()
+		snapshot.SMTP = system.SystemMonitoringSMTP{
+			SessionsStarted:    smtpSnap.SessionsStarted,
+			RecipientsAccepted: smtpSnap.RecipientsAccepted,
+			BytesReceived:      smtpSnap.BytesReceived,
+		}
+		if state.DirectIngest != nil {
+			spoolItems, err := state.DirectIngest.ListSpool(ctx)
+			if err == nil {
+				pending := 0
+				for _, item := range spoolItems {
+					if item.Status == "pending" || item.Status == "processing" {
+						pending++
+					}
+				}
+				snapshot.SMTP.QueueDepth = pending
+			}
+		}
+
+		if state.RedisClient != nil {
+			info, err := state.RedisClient.Info(ctx, "memory", "clients", "server").Result()
+			if err == nil {
+				snapshot.Redis.Connected = true
+				snapshot.Redis.UsedMemoryBytes = parseRedisInfoInt64(info, "used_memory")
+				snapshot.Redis.UsedMemoryHuman = parseRedisInfoString(info, "used_memory_human")
+				snapshot.Redis.ConnectedClients = parseRedisInfoInt64(info, "connected_clients")
+				snapshot.Redis.UptimeSeconds = parseRedisInfoInt64(info, "uptime_in_seconds")
+			}
+		}
+
+		if state.DB != nil {
+			sqlDB, err := state.DB.DB()
+			if err == nil {
+				dbStats := sqlDB.Stats()
+				snapshot.Database = system.SystemMonitoringDatabase{
+					OpenConnections: dbStats.OpenConnections,
+					InUse:           dbStats.InUse,
+					Idle:            dbStats.Idle,
+					MaxOpen:         dbStats.MaxOpenConnections,
+				}
+			}
+		}
+
+		snapshot.General = system.SystemMonitoringGeneral{
+			UptimeSeconds:      int64(time.Since(appStartedAt).Seconds()),
+			TotalMessagesCount: state.MessageRepo.CountToday(ctx),
+			ActiveMailboxCount: state.MailboxRepo.CountActive(ctx),
+			StartedAt:          appStartedAt,
+		}
+
+		return snapshot, nil
+	})
+	systemService := system.NewService(state.ConfigRepo, state.JobRepo, state.AuditRepo, spoolList, spoolRetry, smtpMetrics, publicStatsProvider, systemMonitoringProvider)
 	systemController := system.NewController(systemService)
 	authGuard := middleware.RequireAuth(cfg.JWTSecret)
 	apiKeyGuard := middleware.RequireUserOrAPIKey(cfg.JWTSecret, state.PortalRepo, state.AuthRepo)
@@ -611,6 +668,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	adminGroup.Use(adminGuard...)
 	adminGroup.GET("/overview", adminController.Overview)
 	adminGroup.GET("/users", adminController.ListUsers)
+	adminGroup.GET("/users/:id/detail", adminController.GetUserDetail)
 	adminGroup.PUT("/users/:id", adminController.UpdateUser)
 	adminGroup.DELETE("/users/:id", adminController.DeleteUser)
 	adminGroup.PUT("/users/:id/roles", adminController.UpdateUserRoles)
@@ -678,6 +736,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	adminGroup.GET("/jobs/inbound-spool", systemController.ListInboundSpool)
 	adminGroup.POST("/jobs/inbound-spool/:id/retry", systemController.RetryInboundSpool)
 	adminGroup.GET("/jobs/smtp-metrics", systemController.SMTPMetrics)
+	adminGroup.GET("/monitoring", systemController.SystemMonitoring)
 	adminGroup.GET("/audit", systemController.ListAudit)
 
 	return engine
@@ -1159,4 +1218,28 @@ func mergeRestrictiveInboundPolicy(current ingest.InboundPolicy, next ingest.Inb
 	}
 	current.RejectExecutableFiles = current.RejectExecutableFiles || next.RejectExecutableFiles
 	return current
+}
+
+func parseRedisInfoInt64(info string, key string) int64 {
+	prefix := key + ":"
+	for _, line := range strings.Split(info, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) {
+			valStr := strings.TrimPrefix(line, prefix)
+			val, _ := strconv.ParseInt(strings.TrimSpace(valStr), 10, 64)
+			return val
+		}
+	}
+	return 0
+}
+
+func parseRedisInfoString(info string, key string) string {
+	prefix := key + ":"
+	for _, line := range strings.Split(info, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		}
+	}
+	return ""
 }

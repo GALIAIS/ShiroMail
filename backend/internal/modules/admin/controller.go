@@ -41,6 +41,21 @@ func (c *Controller) ListUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
 }
 
+func (c *Controller) GetUserDetail(ctx *gin.Context) {
+	userID, ok := parseAdminParamID(ctx, "id")
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		return
+	}
+
+	detail, err := c.service.GetUserDetail(ctx, userID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
+	}
+	ctx.JSON(http.StatusOK, detail)
+}
+
 func (c *Controller) UpdateUserRoles(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {

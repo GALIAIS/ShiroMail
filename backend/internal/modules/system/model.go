@@ -127,6 +127,42 @@ type PublicSiteStats struct {
 	UpdatedAt          time.Time `json:"updatedAt"`
 }
 
+type SystemMonitoringSnapshot struct {
+	SMTP     SystemMonitoringSMTP     `json:"smtp"`
+	Redis    SystemMonitoringRedis    `json:"redis"`
+	Database SystemMonitoringDatabase `json:"database"`
+	General  SystemMonitoringGeneral  `json:"general"`
+}
+
+type SystemMonitoringSMTP struct {
+	QueueDepth        int   `json:"queueDepth"`
+	SessionsStarted   int64 `json:"sessionsStarted"`
+	RecipientsAccepted int64 `json:"recipientsAccepted"`
+	BytesReceived     int64 `json:"bytesReceived"`
+}
+
+type SystemMonitoringRedis struct {
+	Connected       bool   `json:"connected"`
+	UsedMemoryBytes int64  `json:"usedMemoryBytes"`
+	UsedMemoryHuman string `json:"usedMemoryHuman"`
+	ConnectedClients int64 `json:"connectedClients"`
+	UptimeSeconds   int64  `json:"uptimeSeconds"`
+}
+
+type SystemMonitoringDatabase struct {
+	OpenConnections int `json:"openConnections"`
+	InUse           int `json:"inUse"`
+	Idle            int `json:"idle"`
+	MaxOpen         int `json:"maxOpen"`
+}
+
+type SystemMonitoringGeneral struct {
+	UptimeSeconds      int64     `json:"uptimeSeconds"`
+	TotalMessagesCount int       `json:"totalMessagesCount"`
+	ActiveMailboxCount int       `json:"activeMailboxCount"`
+	StartedAt          time.Time `json:"startedAt"`
+}
+
 type ConfigRepository interface {
 	List(ctx context.Context) ([]ConfigEntry, error)
 	Upsert(ctx context.Context, key string, value map[string]any, actorID uint64) (ConfigEntry, error)

@@ -16,16 +16,18 @@ type InboundSpoolListFunc func(ctx context.Context) ([]InboundSpoolRecord, error
 type InboundSpoolRetryFunc func(ctx context.Context, id uint64) (InboundSpoolRecord, error)
 type SMTPMetricsSnapshotFunc func(ctx context.Context) (SMTPMetricsSnapshot, error)
 type PublicSiteStatsFunc func(ctx context.Context) (PublicSiteStats, error)
+type SystemMonitoringFunc func(ctx context.Context) (SystemMonitoringSnapshot, error)
 
 type Service struct {
-	configRepo  ConfigRepository
-	jobRepo     JobRepository
-	auditRepo   AuditRepository
-	mailTester  MailDeliveryTester
-	spoolList   InboundSpoolListFunc
-	spoolRetry  InboundSpoolRetryFunc
-	smtpMetrics SMTPMetricsSnapshotFunc
-	publicStats PublicSiteStatsFunc
+	configRepo        ConfigRepository
+	jobRepo           JobRepository
+	auditRepo         AuditRepository
+	mailTester        MailDeliveryTester
+	spoolList         InboundSpoolListFunc
+	spoolRetry        InboundSpoolRetryFunc
+	smtpMetrics       SMTPMetricsSnapshotFunc
+	publicStats       PublicSiteStatsFunc
+	systemMonitoring  SystemMonitoringFunc
 }
 
 func NewService(configRepo ConfigRepository, jobRepo JobRepository, auditRepo AuditRepository, options ...any) *Service {
@@ -34,6 +36,7 @@ func NewService(configRepo ConfigRepository, jobRepo JobRepository, auditRepo Au
 	var spoolRetry InboundSpoolRetryFunc
 	var smtpMetrics SMTPMetricsSnapshotFunc
 	var publicStats PublicSiteStatsFunc
+	var systemMonitoring SystemMonitoringFunc
 	for _, option := range options {
 		if current, ok := option.(MailDeliveryTester); ok {
 			mailTester = current
@@ -50,19 +53,23 @@ func NewService(configRepo ConfigRepository, jobRepo JobRepository, auditRepo Au
 		if current, ok := option.(PublicSiteStatsFunc); ok {
 			publicStats = current
 		}
+		if current, ok := option.(SystemMonitoringFunc); ok {
+			systemMonitoring = current
+		}
 	}
 	if mailTester == nil {
 		mailTester = NewConfigMailDeliveryTester(configRepo)
 	}
 	return &Service{
-		configRepo:  configRepo,
-		jobRepo:     jobRepo,
-		auditRepo:   auditRepo,
-		mailTester:  mailTester,
-		spoolList:   spoolList,
-		spoolRetry:  spoolRetry,
-		smtpMetrics: smtpMetrics,
-		publicStats: publicStats,
+		configRepo:       configRepo,
+		jobRepo:          jobRepo,
+		auditRepo:        auditRepo,
+		mailTester:       mailTester,
+		spoolList:        spoolList,
+		spoolRetry:       spoolRetry,
+		smtpMetrics:      smtpMetrics,
+		publicStats:      publicStats,
+		systemMonitoring: systemMonitoring,
 	}
 }
 
@@ -276,6 +283,13 @@ func (s *Service) SMTPMetrics(ctx context.Context) (SMTPMetricsSnapshot, error) 
 	}
 	item.RejectedDetails = buildSMTPRejectedDetails(item.Rejected)
 	return item, nil
+}
+
+func (s *Service) SystemMonitoring(ctx context.Context) (SystemMonitoringSnapshot, error) {
+	if s.systemMonitoring == nil {
+		return SystemMonitoringSnapshot{}, nil
+	}
+	return s.systemMonitoring(ctx)
 }
 
 func (s *Service) ListAudit(ctx context.Context) ([]AuditLog, error) {

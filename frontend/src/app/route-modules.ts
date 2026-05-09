@@ -3,6 +3,7 @@ import { lazy } from "react";
 
 const routeModuleLoaders = {
   landing: () => import("../features/home/pages/landing-page"),
+  pricing: () => import("../features/home/pages/pricing-page"),
   updates: () => import("../features/home/pages/updates-page"),
   docsLanding: () => import("../features/home/pages/docs-landing-page"),
   faq: () => import("../features/home/pages/faq-page"),
@@ -43,6 +44,8 @@ const routeModuleLoaders = {
   adminAccount: () => import("../features/admin/pages/account-page"),
   adminSettings: () => import("../features/admin/pages/settings-page"),
   adminAuditLog: () => import("../features/admin/pages/audit-log-page"),
+  adminMonitoring: () => import("../features/admin/pages/monitoring-page"),
+  adminUserDetail: () => import("../features/admin/pages/user-detail-page"),
 } as const;
 
 export type RouteModuleKey = keyof typeof routeModuleLoaders;

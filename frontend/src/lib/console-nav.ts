@@ -13,6 +13,7 @@ import {
   Mail,
   Megaphone,
   MessageSquareText,
+  Monitor,
   Network,
   Radio,
   ScrollText,
@@ -85,6 +86,7 @@ export const adminSidebarSections: ConsoleNavSection[] = [
   {
     items: [
       { labelKey: "nav.admin.overview", to: "/admin", icon: LayoutGrid },
+      { labelKey: "nav.admin.monitoring", to: "/admin/monitoring", icon: Monitor },
       { labelKey: "nav.admin.users", to: "/admin/users", icon: Users },
       { labelKey: "nav.admin.messages", to: "/admin/messages", icon: MessageSquareText },
       { labelKey: "nav.admin.mailboxes", to: "/admin/mailboxes", icon: Inbox },

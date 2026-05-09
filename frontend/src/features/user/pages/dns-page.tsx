@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, ChevronUp, RefreshCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Copy, RefreshCcw, Trash2 } from "lucide-react";
 import i18n from "@/lib/i18n";
 import {
   AlertDialog,
@@ -40,6 +40,7 @@ import {
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { formatDNSRecordValueForDisplay } from "@/lib/dns-record-display";
+import { showSuccess } from "@/lib/toast";
 import { useAuthStore } from "@/lib/auth-store";
 import { readPersistedState, writePersistedState } from "@/lib/persisted-state";
 import {
@@ -94,6 +95,35 @@ const PROVIDER_PERMISSION_OPTIONS: Record<"cloudflare" | "spaceship", OptionComb
 const PERSISTED_QUERY_STALE_TIME = 60_000;
 const PROVIDER_ZONE_FAILURE_COOLDOWN_MS = 45_000;
 const USER_DNS_RECORDS_PAGE_SIZE = 8;
+
+function DnsCopyButton({ value }: { value: string }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      showSuccess(t("dns.copied"));
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // silently fail
+    }
+  }, [value, t]);
+
+  return (
+    <Button
+      aria-label={t("dns.copied")}
+      className={copied ? "opacity-100" : "opacity-0 group-hover/row:opacity-100 transition-opacity"}
+      onClick={handleCopy}
+      size="icon-sm"
+      variant="ghost"
+    >
+      <Copy className="size-3.5" />
+    </Button>
+  );
+}
 
 function getProviderPermissionOptions(provider: string) {
   return PROVIDER_PERMISSION_OPTIONS[
@@ -2051,7 +2081,7 @@ export function UserDnsPage() {
                                                             <tbody>
                                                               {paginatedZoneRecords.items.map((record, index) => (
                                                                 <tr
-                                                                  className="border-t border-border/60 bg-card/50"
+                                                                  className="group/row border-t border-border/60 bg-card/50"
                                                                   key={`${record.id ?? record.name}-${(paginatedZoneRecords.page - 1) * USER_DNS_RECORDS_PAGE_SIZE + index}`}
                                                                 >
                                                                   <td className="px-3 py-3">
@@ -2059,11 +2089,16 @@ export function UserDnsPage() {
                                                                   </td>
                                                                   <td className="px-3 py-3 font-medium">{record.name}</td>
                                                                   <td className="px-3 py-3 font-mono text-xs break-all whitespace-normal">
-                                                                    {formatDNSRecordValueForDisplay(
-                                                                      record.type,
-                                                                      record.value,
-                                                                      activeProviderWorkspace?.provider,
-                                                                    )}
+                                                                    <span className="inline-flex items-center gap-1.5">
+                                                                      <span>
+                                                                        {formatDNSRecordValueForDisplay(
+                                                                          record.type,
+                                                                          record.value,
+                                                                          activeProviderWorkspace?.provider,
+                                                                        )}
+                                                                      </span>
+                                                                      <DnsCopyButton value={record.value} />
+                                                                    </span>
                                                                   </td>
                                                                   <td className="px-3 py-3 text-xs text-muted-foreground">{record.ttl}</td>
                                                                 </tr>
@@ -2206,15 +2241,20 @@ export function UserDnsPage() {
                                                             </thead>
                                                             <tbody>
                                                               {recommendedRepairRecords.map((record, index) => (
-                                                                <tr className="border-t border-border/60 bg-background/70" key={`${record.type}-${record.name}-${index}`}>
+                                                                <tr className="group/row border-t border-border/60 bg-background/70" key={`${record.type}-${record.name}-${index}`}>
                                                                   <td className="px-3 py-3"><WorkspaceBadge variant="outline">{record.type}</WorkspaceBadge></td>
                                                                   <td className="px-3 py-3 font-medium">{record.name}</td>
                                                                   <td className="px-3 py-3 font-mono text-xs break-all whitespace-normal">
-                                                                    {formatDNSRecordValueForDisplay(
-                                                                      record.type,
-                                                                      record.value,
-                                                                      activeProviderWorkspace?.provider,
-                                                                    )}
+                                                                    <span className="inline-flex items-center gap-1.5">
+                                                                      <span>
+                                                                        {formatDNSRecordValueForDisplay(
+                                                                          record.type,
+                                                                          record.value,
+                                                                          activeProviderWorkspace?.provider,
+                                                                        )}
+                                                                      </span>
+                                                                      <DnsCopyButton value={record.value} />
+                                                                    </span>
                                                                   </td>
                                                                   <td className="px-3 py-3 text-xs text-muted-foreground">{record.ttl || "自动"}</td>
                                                                   <td className="px-3 py-3 text-xs text-muted-foreground">{record.priority || "-"}</td>

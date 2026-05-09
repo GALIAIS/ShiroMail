@@ -185,6 +185,15 @@ func (c *Controller) SMTPMetrics(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, item)
 }
 
+func (c *Controller) SystemMonitoring(ctx *gin.Context) {
+	item, err := c.service.SystemMonitoring(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load system monitoring"})
+		return
+	}
+	ctx.JSON(http.StatusOK, item)
+}
+
 func (c *Controller) ListAudit(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "20"))

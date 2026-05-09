@@ -104,6 +104,55 @@ type UserFeedItem struct {
 	Mailboxes     int      `json:"mailboxes"`
 }
 
+type UserDetailMailbox struct {
+	ID        uint64    `json:"id"`
+	Address   string    `json:"address"`
+	Domain    string    `json:"domain"`
+	Status    string    `json:"status"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type UserDetailWebhook struct {
+	ID        uint64    `json:"id"`
+	Name      string    `json:"name"`
+	TargetURL string    `json:"targetUrl"`
+	Enabled   bool      `json:"enabled"`
+	Events    []string  `json:"events"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type UserDetailAPIKey struct {
+	ID         uint64    `json:"id"`
+	Name       string    `json:"name"`
+	KeyPreview string    `json:"keyPreview"`
+	Status     string    `json:"status"`
+	Scopes     []string  `json:"scopes"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
+
+type UserDetailAuditEntry struct {
+	ID           uint64         `json:"id"`
+	Action       string         `json:"action"`
+	ResourceType string         `json:"resourceType"`
+	ResourceID   string         `json:"resourceId"`
+	Detail       map[string]any `json:"detail"`
+	CreatedAt    time.Time      `json:"createdAt"`
+}
+
+type UserDetailDTO struct {
+	ID            uint64                 `json:"id"`
+	Username      string                 `json:"username"`
+	Email         string                 `json:"email"`
+	Status        string                 `json:"status"`
+	EmailVerified bool                   `json:"emailVerified"`
+	Roles         []string               `json:"roles"`
+	Mailboxes     []UserDetailMailbox    `json:"mailboxes"`
+	Webhooks      []UserDetailWebhook    `json:"webhooks"`
+	APIKeys       []UserDetailAPIKey     `json:"apiKeys"`
+	AuditLog      []UserDetailAuditEntry `json:"auditLog"`
+}
+
 func (s *Service) ListUsers(ctx context.Context) ([]UserFeedItem, error) {
 	users, err := s.authRepo.ListUsers(ctx)
 	if err != nil {
@@ -128,6 +177,83 @@ func (s *Service) ListUsers(ctx context.Context) ([]UserFeedItem, error) {
 		})
 	}
 	return items, nil
+}
+
+func (s *Service) GetUserDetail(ctx context.Context, userID uint64) (UserDetailDTO, error) {
+	user, err := s.authRepo.FindUserByID(ctx, userID)
+	if err != nil {
+		return UserDetailDTO{}, err
+	}
+
+	mailboxes, _ := s.mailboxRepo.ListByUserID(ctx, user.ID)
+	detailMailboxes := make([]UserDetailMailbox, 0, len(mailboxes))
+	for _, mb := range mailboxes {
+		detailMailboxes = append(detailMailboxes, UserDetailMailbox{
+			ID:        mb.ID,
+			Address:   mb.Address,
+			Domain:    mb.Domain,
+			Status:    mb.Status,
+			ExpiresAt: mb.ExpiresAt,
+			CreatedAt: mb.CreatedAt,
+		})
+	}
+
+	webhooks, _ := s.portalRepo.ListWebhooksByUser(ctx, user.ID)
+	detailWebhooks := make([]UserDetailWebhook, 0, len(webhooks))
+	for _, wh := range webhooks {
+		detailWebhooks = append(detailWebhooks, UserDetailWebhook{
+			ID:        wh.ID,
+			Name:      wh.Name,
+			TargetURL: wh.TargetURL,
+			Enabled:   wh.Enabled,
+			Events:    wh.Events,
+			CreatedAt: wh.CreatedAt,
+		})
+	}
+
+	apiKeys, _ := s.portalRepo.ListAPIKeysByUser(ctx, user.ID)
+	detailAPIKeys := make([]UserDetailAPIKey, 0, len(apiKeys))
+	for _, key := range apiKeys {
+		detailAPIKeys = append(detailAPIKeys, UserDetailAPIKey{
+			ID:         key.ID,
+			Name:       key.Name,
+			KeyPreview: key.KeyPreview,
+			Status:     key.Status,
+			Scopes:     key.Scopes,
+			CreatedAt:  key.CreatedAt,
+		})
+	}
+
+	auditLogs, _ := s.auditRepo.List(ctx)
+	detailAudit := make([]UserDetailAuditEntry, 0)
+	for _, entry := range auditLogs {
+		if entry.ActorUserID == user.ID {
+			detailAudit = append(detailAudit, UserDetailAuditEntry{
+				ID:           entry.ID,
+				Action:       entry.Action,
+				ResourceType: entry.ResourceType,
+				ResourceID:   entry.ResourceID,
+				Detail:       entry.Detail,
+				CreatedAt:    entry.CreatedAt,
+			})
+		}
+		if len(detailAudit) >= 20 {
+			break
+		}
+	}
+
+	return UserDetailDTO{
+		ID:            user.ID,
+		Username:      user.Username,
+		Email:         user.Email,
+		Status:        user.Status,
+		EmailVerified: user.EmailVerified,
+		Roles:         user.Roles,
+		Mailboxes:     detailMailboxes,
+		Webhooks:      detailWebhooks,
+		APIKeys:       detailAPIKeys,
+		AuditLog:      detailAudit,
+	}, nil
 }
 
 type UpdateUserInput struct {

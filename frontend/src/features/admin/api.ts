@@ -914,6 +914,85 @@ export async function fetchAdminAuditPaginated(input?: {
   return data;
 }
 
+export type SystemMonitoringSnapshot = {
+  smtp: {
+    queueDepth: number;
+    sessionsStarted: number;
+    recipientsAccepted: number;
+    bytesReceived: number;
+  };
+  redis: {
+    connected: boolean;
+    usedMemoryBytes: number;
+    usedMemoryHuman: string;
+    connectedClients: number;
+    uptimeSeconds: number;
+  };
+  database: {
+    openConnections: number;
+    inUse: number;
+    idle: number;
+    maxOpen: number;
+  };
+  general: {
+    uptimeSeconds: number;
+    totalMessagesCount: number;
+    activeMailboxCount: number;
+    startedAt: string;
+  };
+};
+
+export async function fetchAdminSystemMonitoring() {
+  const { data } = await http.get<SystemMonitoringSnapshot>("/admin/monitoring");
+  return data;
+}
+
+export type AdminUserDetail = {
+  id: number;
+  username: string;
+  email: string;
+  status: string;
+  emailVerified: boolean;
+  roles: string[];
+  mailboxes: Array<{
+    id: number;
+    address: string;
+    domain: string;
+    status: string;
+    expiresAt: string;
+    createdAt: string;
+  }>;
+  webhooks: Array<{
+    id: number;
+    name: string;
+    targetUrl: string;
+    enabled: boolean;
+    events: string[];
+    createdAt: string;
+  }>;
+  apiKeys: Array<{
+    id: number;
+    name: string;
+    keyPreview: string;
+    status: string;
+    scopes: string[];
+    createdAt: string;
+  }>;
+  auditLog: Array<{
+    id: number;
+    action: string;
+    resourceType: string;
+    resourceId: string;
+    detail: Record<string, unknown>;
+    createdAt: string;
+  }>;
+};
+
+export async function fetchAdminUserDetail(userId: number) {
+  const { data } = await http.get<AdminUserDetail>(`/admin/users/${userId}/detail`);
+  return data;
+}
+
 function normalizeAdminApiKeyItem(item: ApiKeyItem): ApiKeyItem {
   return {
     ...item,

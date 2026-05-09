@@ -19,6 +19,7 @@ import { resolveSiteIconUrl } from "@/hooks/use-site-branding";
 
 const publicNavItems = [
   { labelKey: "nav.public.features", href: "/#features", match: "/" },
+  { labelKey: "nav.public.pricing", href: "/pricing", match: "/pricing" },
   { labelKey: "nav.public.updates", href: "/updates", match: "/updates" },
   { labelKey: "nav.public.docs", href: "/docs", match: "/docs" },
   { labelKey: "nav.public.faq", href: "/faq", match: "/faq" },
@@ -56,6 +57,9 @@ export function PublicShell({ children, hero, pageClassName }: PublicShellProps)
   const pageTitle = (() => {
     if (location.pathname === "/") {
       return siteName;
+    }
+    if (location.pathname === "/pricing") {
+      return composePageTitle("Pricing", siteName);
     }
     if (location.pathname === "/updates") {
       return composePageTitle("功能更新", siteName);

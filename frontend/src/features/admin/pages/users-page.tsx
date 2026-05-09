@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
 import {
   AlertDialog,
@@ -67,6 +68,7 @@ function buildEditForm(user: AdminUser): UserEditForm {
 
 export function AdminUsersPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const currentUserId = useAuthStore((state) => state.user?.userId ?? null);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -336,6 +338,9 @@ export function AdminUsersPage() {
                     <>
                       <span className="rounded-full border border-border/60 px-2 py-1">{user.roles.join(", ")}</span>
                       <span>{user.mailboxes} 个邮箱</span>
+                      <Button onClick={() => navigate(`/admin/users/${user.id}`)} size="sm" variant="ghost">
+                        查看
+                      </Button>
                       <Button onClick={() => openEditDialog(user)} size="sm" variant="outline">
                         编辑
                       </Button>

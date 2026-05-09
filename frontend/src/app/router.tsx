@@ -13,6 +13,7 @@ function RouteBoundary({ children }: { children: ReactNode }) {
 }
 
 const LandingPage = lazyRoute("landing", "LandingPage");
+const PricingPage = lazyRoute("pricing", "PricingPage");
 const UpdatesPage = lazyRoute("updates", "UpdatesPage");
 const DocsLandingPage = lazyRoute("docsLanding", "DocsLandingPage");
 const FaqPage = lazyRoute("faq", "FaqPage");
@@ -55,6 +56,8 @@ const AdminDocsPage = lazyRoute("adminDocs", "AdminDocsPage");
 const AdminAccountPage = lazyRoute("adminAccount", "AdminAccountPage");
 const AdminSettingsPage = lazyRoute("adminSettings", "AdminSettingsPage");
 const AdminAuditLogPage = lazyRoute("adminAuditLog", "AdminAuditLogPage");
+const AdminMonitoringPage = lazyRoute("adminMonitoring", "AdminMonitoringPage");
+const AdminUserDetailPage = lazyRoute("adminUserDetail", "AdminUserDetailPage");
 
 function HomeRoute() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -104,7 +107,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/pricing",
-    element: <Navigate replace to="/docs" />,
+    element: (
+      <RouteBoundary>
+        <PricingPage />
+      </RouteBoundary>
+    ),
   },
   {
     path: "/updates",
@@ -429,6 +436,22 @@ const router = createBrowserRouter([
         element: (
           <RouteBoundary>
             <AdminAuditLogPage />
+          </RouteBoundary>
+        ),
+      },
+      {
+        path: "monitoring",
+        element: (
+          <RouteBoundary>
+            <AdminMonitoringPage />
+          </RouteBoundary>
+        ),
+      },
+      {
+        path: "users/:id",
+        element: (
+          <RouteBoundary>
+            <AdminUserDetailPage />
           </RouteBoundary>
         ),
       },

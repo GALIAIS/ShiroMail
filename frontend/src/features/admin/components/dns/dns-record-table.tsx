@@ -1,12 +1,46 @@
+import { Copy } from "lucide-react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
 } from "@/components/layout/workspace-ui";
+import { Button } from "@/components/ui/button";
 import { formatDNSRecordValueForDisplay } from "@/lib/dns-record-display";
+import { showSuccess } from "@/lib/toast";
 import type { ProviderRecordItem } from "../../api";
 import { PaginationControls, SectionToggle } from "./dns-shared-ui";
 import { ADMIN_RECORDS_PAGE_SIZE } from "./dns-page.utils";
+
+function CopyValueButton({ value }: { value: string }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      showSuccess(t("dns.copied"));
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // silently fail
+    }
+  }, [value, t]);
+
+  return (
+    <Button
+      aria-label={t("dns.copied")}
+      className={copied ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"}
+      onClick={handleCopy}
+      size="icon-sm"
+      variant="ghost"
+    >
+      <Copy className="size-3.5" />
+    </Button>
+  );
+}
 
 type DnsRecordTableProps = {
   records: ProviderRecordItem[];
@@ -50,12 +84,20 @@ export function DnsRecordTable({
           {paginatedItems.map((record) => (
             <WorkspaceListRow
               key={record.id}
+              className="group"
               title={`${record.type} · ${record.name}`}
-              description={formatDNSRecordValueForDisplay(
-                record.type,
-                record.value,
-                currentRecordProviderType,
-              )}
+              description={
+                <span className="inline-flex items-center gap-1.5">
+                  <span>
+                    {formatDNSRecordValueForDisplay(
+                      record.type,
+                      record.value,
+                      currentRecordProviderType,
+                    )}
+                  </span>
+                  <CopyValueButton value={record.value} />
+                </span>
+              }
               descriptionClassName="font-mono text-xs break-all whitespace-normal"
               meta={
                 <>
