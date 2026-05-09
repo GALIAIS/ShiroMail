@@ -65,6 +65,27 @@ func (c *Controller) RecentActivity(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
 }
 
+func (c *Controller) GlobalSearch(ctx *gin.Context) {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
+	query := ctx.Query("q")
+	if query == "" {
+		ctx.JSON(http.StatusOK, gin.H{"items": []Summary{}})
+		return
+	}
+
+	items, err := c.service.GlobalSearch(ctx, userID, query, 20)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to search messages"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"items": items})
+}
+
 func (c *Controller) ListByMailbox(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {

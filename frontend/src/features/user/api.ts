@@ -413,6 +413,23 @@ export async function fetchRecentActivity(limit = 10) {
   return data.items ?? [];
 }
 
+export type GlobalSearchResult = {
+  id: number;
+  mailboxId: number;
+  mailboxAddress: string;
+  fromAddr: string;
+  subject: string;
+  textPreview: string;
+  isRead: boolean;
+  hasAttachments: boolean;
+  receivedAt: string;
+};
+
+export async function searchMessages(query: string) {
+  const { data } = await http.get<{ items: GlobalSearchResult[] }>("/dashboard/search", { params: { q: query } });
+  return data.items ?? [];
+}
+
 export async function fetchPortalOverview() {
   const { data } = await http.get<PortalOverview>("/portal/overview");
   return data;

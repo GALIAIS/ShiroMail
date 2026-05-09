@@ -477,6 +477,12 @@ const translation = {
     deliveryLogsEmpty: "No delivery logs yet",
     deliveryLogsEmptyHint: "When a webhook fires, delivery logs will appear here.",
   },
+  search: {
+    title: "Search Messages",
+    placeholder: "Search sender, subject...",
+    hint: "Type at least 2 characters to search",
+    noResults: "No matching messages found",
+  },
   settings: {
     description:
       "Update the display name, language preference, and refresh cadence for the console.",

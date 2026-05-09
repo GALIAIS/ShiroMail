@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/sidebar";
 import { createRoutePrefetchHandlers } from "@/app/prefetch-route";
 import { cn } from "@/lib/utils";
-import { LogOut, RefreshCw } from "lucide-react";
+import { LogOut, RefreshCw, Search } from "lucide-react";
 import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
 import { ConsoleBreadcrumb } from "./console-breadcrumb";
+import { GlobalSearchDialog, useGlobalSearchShortcut } from "./global-search-dialog";
 
 type ConsoleShellProps = {
   brand: string;
@@ -65,6 +66,7 @@ export function ConsoleShell({
   const planLabel = t(role === "admin" ? "console.plan.admin" : "console.plan.user");
   const roleSubtitle = t(role === "admin" ? "console.subtitle.admin" : "console.subtitle.user");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const searchState = useGlobalSearchShortcut();
 
   const avatarLabel = username.slice(0, 1).toUpperCase();
   const currentLabel = useMemo(() => {
@@ -190,6 +192,15 @@ export function ConsoleShell({
               </div>
 
               <div className="ml-auto flex items-center gap-1.5">
+                <Button
+                  aria-label={t("common.search")}
+                  onClick={() => searchState.setOpen(true)}
+                  size="icon-sm"
+                  title="Ctrl+K"
+                  variant="ghost"
+                >
+                  <Search className="size-4" />
+                </Button>
                 <HeaderPreferences />
                 <Button
                   aria-label={t("common.refresh")}
@@ -221,6 +232,7 @@ export function ConsoleShell({
           </div>
         </div>
       </SidebarInset>
+      <GlobalSearchDialog open={searchState.open} onOpenChange={searchState.setOpen} />
     </SidebarProvider>
   );
 }

@@ -446,6 +446,51 @@ func (r *MySQLRepository) RecentByUser(ctx context.Context, userID uint64, limit
 	return mapMessageSummaries(rows, counts), nil
 }
 
+func (r *MySQLRepository) SearchByUser(ctx context.Context, userID uint64, query string, limit int) ([]Summary, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	if query == "" {
+		return nil, nil
+	}
+	var rows []database.MessageRow
+	err := r.db.WithContext(ctx).
+		Table("messages").
+		Select([]string{
+			"messages.id",
+			"messages.mailbox_id",
+			"messages.legacy_mailbox_key",
+			"messages.legacy_message_key",
+			"messages.source_kind",
+			"messages.source_message_id",
+			"messages.mailbox_address",
+			"messages.from_addr",
+			"messages.to_addr",
+			"messages.subject",
+			"messages.text_preview",
+			"messages.html_preview",
+			"messages.has_attachments",
+			"messages.size_bytes",
+			"messages.is_read",
+			"messages.is_deleted",
+			"messages.received_at",
+		}).
+		Joins("JOIN mailboxes ON mailboxes.id = messages.mailbox_id").
+		Where("mailboxes.user_id = ? AND messages.is_deleted = ?", userID, false).
+		Where("MATCH(messages.from_addr, messages.subject, messages.text_preview) AGAINST(? IN BOOLEAN MODE)", query).
+		Order("messages.received_at DESC").
+		Limit(limit).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	counts, err := r.loadAttachmentCounts(ctx, messageIDs(rows))
+	if err != nil {
+		return nil, err
+	}
+	return mapMessageSummaries(rows, counts), nil
+}
+
 func (r *MySQLRepository) loadMessageSummaryRows(ctx context.Context, mailboxID uint64, query string) ([]database.MessageRow, error) {
 	db := r.db.WithContext(ctx).
 		Select([]string{

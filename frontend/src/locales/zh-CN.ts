@@ -456,6 +456,12 @@ const translation = {
     deliveryLogsEmpty: "暂无投递记录",
     deliveryLogsEmptyHint: "当 Webhook 触发投递后，日志会显示在这里。",
   },
+  search: {
+    title: "搜索邮件",
+    placeholder: "搜索发件人、主题...",
+    hint: "输入至少 2 个字符开始搜索",
+    noResults: "未找到匹配的邮件",
+  },
   settings: {
     description: "更新展示名称、语言偏好与控制台刷新频率。",
     loginUsername: "登录账号",

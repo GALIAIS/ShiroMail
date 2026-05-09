@@ -555,6 +555,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	api.GET("/dashboard", apiKeyGuard, middleware.RequireAPIScope("mailboxes.read"), middleware.RequireAPIScope("domains.read"), mailboxController.Dashboard)
 	api.GET("/dashboard/trend", authGuard, messageController.Trend)
 	api.GET("/dashboard/activity", authGuard, messageController.RecentActivity)
+	api.GET("/dashboard/search", authGuard, messageController.GlobalSearch)
 	api.GET("/mailboxes", apiKeyGuard, middleware.RequireAPIScope("mailboxes.read"), mailboxController.List)
 	api.POST("/mailboxes", mailboxWriteRL, apiKeyGuard, middleware.RequireAPIScope("mailboxes.write"), mailboxController.Create)
 	api.POST("/mailboxes/:mailboxId/extend", mailboxWriteRL, apiKeyGuard, middleware.RequireAPIScope("mailboxes.write"), mailboxController.Extend)

@@ -206,6 +206,13 @@ func (s *Service) RecentActivity(ctx context.Context, userID uint64, limit int) 
 	return s.repo.RecentByUser(ctx, userID, limit)
 }
 
+func (s *Service) GlobalSearch(ctx context.Context, userID uint64, query string, limit int) ([]Summary, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	return s.repo.SearchByUser(ctx, userID, query, limit)
+}
+
 func (s *Service) listSummaries(ctx context.Context, mailboxID uint64, query string) ([]Summary, error) {
 	cacheKey := mailboxMessageListCacheKey(mailboxID, query)
 	if query == "" && s.cache != nil {
