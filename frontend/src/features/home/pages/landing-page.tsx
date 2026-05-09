@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BookOpen,
   Globe,
   KeyRound,
   Mail,
@@ -8,6 +9,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,16 +109,34 @@ export function LandingPage() {
   ];
   const faqItems = [
     {
-      title: t("landing.faq.needRegisterTitle"),
-      body: t("landing.faq.needRegisterBody"),
+      id: "what-is",
+      title: t("landing.faq.whatIsTitle"),
+      body: t("landing.faq.whatIsBody"),
     },
     {
+      id: "retention",
+      title: t("landing.faq.retentionTitle"),
+      body: t("landing.faq.retentionBody"),
+    },
+    {
+      id: "api",
+      title: t("landing.faq.apiTitle"),
+      body: t("landing.faq.apiBody"),
+    },
+    {
+      id: "privacy",
+      title: t("landing.faq.privacyTitle"),
+      body: t("landing.faq.privacyBody"),
+    },
+    {
+      id: "custom-domain",
       title: t("landing.faq.customDomainTitle"),
       body: t("landing.faq.customDomainBody"),
     },
     {
-      title: t("landing.faq.roleTitle"),
-      body: t("landing.faq.roleBody"),
+      id: "pricing",
+      title: t("landing.faq.pricingTitle"),
+      body: t("landing.faq.pricingBody"),
     },
   ];
   const formattedStatsUpdatedAt =
@@ -140,13 +165,14 @@ export function LandingPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <Button className="h-9 px-4" onClick={openLogin} size="sm">
                 {t("landing.primaryCta")}
                 <ArrowRight className="size-4" />
               </Button>
               <Button asChild className="h-9 px-4" size="sm" variant="outline">
                 <Link to="/docs">
+                  <BookOpen className="size-4" />
                   {t("landing.secondaryCta")}
                 </Link>
               </Button>
@@ -262,11 +288,18 @@ export function LandingPage() {
         eyebrow={t("landing.sections.faqEyebrow")}
         title={t("landing.sections.faqTitle")}
       >
-        <div className="grid gap-4 md:grid-cols-3">
-          {faqItems.map((item) => (
-            <PublicFeatureCard description={item.body} key={item.title} title={item.title} />
-          ))}
-        </div>
+        <Card className="border-border/60 bg-card shadow-none" size="sm">
+          <CardContent className="py-2">
+            <Accordion type="single" collapsible>
+              {faqItems.map((item) => (
+                <AccordionItem key={item.id} value={item.id}>
+                  <AccordionTrigger>{item.title}</AccordionTrigger>
+                  <AccordionContent>{item.body}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </CardContent>
+        </Card>
       </PublicSection>
     </PublicShell>
   );

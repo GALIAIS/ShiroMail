@@ -31,6 +31,7 @@ const UserDomainsPage = lazyRoute("userDomains", "UserDomainsPage");
 const UserDnsPage = lazyRoute("userDns", "UserDnsPage");
 const UserExtractorRulesPage = lazyRoute("userExtractors", "UserExtractorRulesPage");
 const UserWebhooksPage = lazyRoute("userWebhooks", "UserWebhooksPage");
+const UserWebhookLogsPage = lazyRoute("userWebhookLogs", "WebhookLogsPage");
 const UserDocsPage = lazyRoute("userDocs", "UserDocsPage");
 const UserBillingPage = lazyRoute("userBilling", "UserBillingPage");
 const UserBalancePage = lazyRoute("userBalance", "UserBalancePage");
@@ -240,6 +241,14 @@ const router = createBrowserRouter([
         element: (
           <RouteBoundary>
             <UserWebhooksPage />
+          </RouteBoundary>
+        ),
+      },
+      {
+        path: "webhooks/:id/logs",
+        element: (
+          <RouteBoundary>
+            <UserWebhookLogsPage />
           </RouteBoundary>
         ),
       },

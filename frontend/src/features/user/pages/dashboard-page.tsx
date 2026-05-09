@@ -34,6 +34,7 @@ import { fetchDashboard, fetchPortalOverview } from "../api";
 import { MessageTrendChart } from "../components/message-trend-chart";
 import { OnboardingGuide } from "../components/onboarding-guide";
 import { RecentActivityFeed } from "../components/recent-activity-feed";
+import { SystemNoticeBanner } from "../components/system-notice-banner";
 import { formatDateTime } from "./shared";
 
 export function UserDashboardPage() {
@@ -113,6 +114,8 @@ export function UserDashboardPage() {
 
   return (
     <WorkspacePage>
+      <SystemNoticeBanner />
+
       <WorkspacePanel
         action={
           <div className="flex items-center gap-2">

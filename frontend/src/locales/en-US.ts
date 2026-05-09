@@ -316,15 +316,24 @@ const translation = {
         "Use one sign-in entry for both users and admins, then route automatically by role.",
     },
     faq: {
-      needRegisterTitle: "Do I need an account?",
-      needRegisterBody:
-        "The homepage keeps a unified sign-in entry. You can still decide whether to open anonymous creation or a full account system later.",
-      customDomainTitle: "Does it support custom domains?",
+      whatIsTitle: "What is ShiroMail?",
+      whatIsBody:
+        "ShiroMail is a self-hosted temporary and disposable email service. It lets you generate short-lived inboxes for sign-up verification, automated testing, and development workflows without exposing your real address.",
+      retentionTitle: "How long are emails retained?",
+      retentionBody:
+        "Email retention is configurable by the site administrator. Mailboxes have a set lifetime after which they and their messages are automatically cleaned up.",
+      apiTitle: "Is there an API?",
+      apiBody:
+        "Yes. ShiroMail provides a full REST API with session auth and API key support. You can create mailboxes, fetch messages, manage domains, and set up webhooks programmatically.",
+      privacyTitle: "Is my data private?",
+      privacyBody:
+        "ShiroMail is fully self-hosted, so you control where your data lives. No third-party services have access to your messages or metadata unless you explicitly configure external integrations.",
+      customDomainTitle: "Can I use custom domains?",
       customDomainBody:
-        "Yes. The user console already supports adding root domains and bulk-generating nested subdomains.",
-      roleTitle: "How are users and admins separated?",
-      roleBody:
-        "They share the same sign-in modal and are routed to the proper dashboard based on role after sign-in.",
+        "Yes. You can attach your own root domains with DNS verification, then bulk-generate multi-level subdomains for different environments, teams, or automation flows.",
+      pricingTitle: "Is it free?",
+      pricingBody:
+        "ShiroMail is open-source and free to self-host. You run it on your own infrastructure with no per-user or per-message fees.",
     },
   },
   docsLanding: {
@@ -486,6 +495,16 @@ const translation = {
     deliveryLogsTitle: "Delivery Logs",
     deliveryLogsEmpty: "No delivery logs yet",
     deliveryLogsEmptyHint: "When a webhook fires, delivery logs will appear here.",
+  },
+  webhookLogs: {
+    title: "Webhook Delivery Logs",
+    panelTitle: "Delivery History",
+    description: "View delivery status and error details for this webhook.",
+    colTime: "Time",
+    colEvent: "Event",
+    colStatus: "Status",
+    colLatency: "Latency",
+    colError: "Error",
   },
   search: {
     title: "Search Messages",

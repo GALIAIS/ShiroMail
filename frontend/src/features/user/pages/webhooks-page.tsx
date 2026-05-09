@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { NoticeBanner } from "@/components/ui/notice-banner";
 import { getAPIErrorMessage } from "@/lib/http";
 import { normalizeCommaSeparatedList, validateHTTPUrl, validateRequiredText } from "@/lib/validation";
+import { Link } from "react-router-dom";
 import {
   WorkspaceBadge,
   WorkspaceEmpty,
@@ -40,7 +41,6 @@ import {
   updateWebhook,
   type WebhookItem,
 } from "../api";
-import { WebhookDeliveryLogsDialog } from "../components/webhook-delivery-logs-dialog";
 import { formatDateTime } from "./shared";
 
 const defaultEvents = ["message.received", "mailbox.released"];
@@ -57,7 +57,6 @@ export function UserWebhooksPage() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [pendingDisableItem, setPendingDisableItem] = useState<WebhookItem | null>(null);
-  const [logsWebhook, setLogsWebhook] = useState<WebhookItem | null>(null);
   const webhooksQuery = useQuery({ queryKey: ["portal-webhooks"], queryFn: fetchWebhooks });
 
   const upsertMutation = useMutation({
@@ -258,8 +257,8 @@ export function UserWebhooksPage() {
                     <Button onClick={() => startEdit(item)} size="sm" variant="secondary">
                       编辑
                     </Button>
-                    <Button onClick={() => setLogsWebhook(item)} size="sm" variant="ghost">
-                      日志
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to={`/dashboard/webhooks/${item.id}/logs`}>日志</Link>
                     </Button>
                     <Button
                       onClick={() => {
@@ -286,13 +285,6 @@ export function UserWebhooksPage() {
           />
         )}
       </WorkspacePanel>
-
-      <WebhookDeliveryLogsDialog
-        webhookId={logsWebhook?.id ?? null}
-        webhookName={logsWebhook?.name ?? ""}
-        open={logsWebhook !== null}
-        onOpenChange={(open) => { if (!open) setLogsWebhook(null); }}
-      />
     </WorkspacePage>
   );
 }

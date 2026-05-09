@@ -304,15 +304,24 @@ const translation = {
         "进入控制台后继续处理邮箱、域名和接口能力。",
     },
     faq: {
-      needRegisterTitle: "需要注册吗？",
-      needRegisterBody:
-        "是否开放注册、邀请码与邮箱验证，都可以由站点配置决定。",
-      customDomainTitle: "是否支持自定义域名？",
+      whatIsTitle: "ShiroMail 是什么？",
+      whatIsBody:
+        "ShiroMail 是一个可自托管的临时邮箱服务。你可以快速生成一次性邮箱地址，用于注册验证、自动化测试和开发流程，无需暴露真实邮箱。",
+      retentionTitle: "邮件会保留多久？",
+      retentionBody:
+        "邮件保留时间由站点管理员配置。邮箱有设定的生命周期，到期后邮箱及其消息会被自动清理。",
+      apiTitle: "有 API 吗？",
+      apiBody:
+        "有。ShiroMail 提供完整的 REST API，支持会话认证和 API Key。你可以通过接口创建邮箱、获取消息、管理域名和配置 Webhook。",
+      privacyTitle: "我的数据安全吗？",
+      privacyBody:
+        "ShiroMail 完全自托管，数据存储位置由你决定。除非你主动配置外部集成，否则没有第三方服务能访问你的消息或元数据。",
+      customDomainTitle: "支持自定义域名吗？",
       customDomainBody:
-        "支持根域名添加与多级子域名批量生成。",
-      roleTitle: "管理员和普通用户怎么区分？",
-      roleBody:
-        "系统会根据账户权限展示对应的控制台页面与可操作范围。",
+        "支持。你可以添加自己的根域名并完成 DNS 验证，然后批量生成多级子域名，用于不同环境、团队或自动化流程。",
+      pricingTitle: "收费吗？",
+      pricingBody:
+        "ShiroMail 是开源项目，可免费自托管。你在自己的基础设施上运行，没有按用户或按消息收费。",
     },
   },
   docsLanding: {
@@ -465,6 +474,16 @@ const translation = {
     deliveryLogsTitle: "投递日志",
     deliveryLogsEmpty: "暂无投递记录",
     deliveryLogsEmptyHint: "当 Webhook 触发投递后，日志会显示在这里。",
+  },
+  webhookLogs: {
+    title: "Webhook 投递日志",
+    panelTitle: "投递记录",
+    description: "查看该 Webhook 的历史投递状态与错误信息。",
+    colTime: "时间",
+    colEvent: "事件",
+    colStatus: "状态",
+    colLatency: "延迟",
+    colError: "错误",
   },
   search: {
     title: "搜索邮件",

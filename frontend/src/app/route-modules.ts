@@ -20,6 +20,7 @@ const routeModuleLoaders = {
   userDns: () => import("../features/user/pages/dns-page"),
   userExtractors: () => import("../features/user/pages/extractor-rules-page"),
   userWebhooks: () => import("../features/user/pages/webhooks-page"),
+  userWebhookLogs: () => import("../features/user/pages/webhook-logs-page"),
   userDocs: () => import("../features/user/pages/docs-page"),
   userBilling: () => import("../features/user/pages/billing-page"),
   userBalance: () => import("../features/user/pages/balance-page"),

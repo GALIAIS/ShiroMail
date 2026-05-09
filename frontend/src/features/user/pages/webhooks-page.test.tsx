@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { createWebhook, fetchWebhooks, toggleWebhook, updateWebhook } from "../api";
 import { UserWebhooksPage } from "./webhooks-page";
 
@@ -75,9 +76,11 @@ describe("UserWebhooksPage", () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <UserWebhooksPage />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <UserWebhooksPage />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     expect(
@@ -124,9 +127,11 @@ describe("UserWebhooksPage", () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <UserWebhooksPage />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <UserWebhooksPage />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "编辑" }));
