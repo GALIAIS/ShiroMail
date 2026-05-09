@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
+import { DashboardSkeleton } from "@/components/layout/workspace-skeletons";
 import { fetchDashboard, fetchPortalOverview } from "../api";
 import { MessageTrendChart } from "../components/message-trend-chart";
 import { OnboardingGuide } from "../components/onboarding-guide";
@@ -40,6 +41,14 @@ export function UserDashboardPage() {
   const sessionUsername = useAuthStore((state) => state.user?.username);
   const dashboardQuery = useQuery({ queryKey: ["user-dashboard"], queryFn: fetchDashboard });
   const overviewQuery = useQuery({ queryKey: ["portal-overview"], queryFn: fetchPortalOverview });
+
+  if (dashboardQuery.isLoading && overviewQuery.isLoading) {
+    return (
+      <WorkspacePage>
+        <DashboardSkeleton />
+      </WorkspacePage>
+    );
+  }
 
   const dashboard = dashboardQuery.data;
   const overview = overviewQuery.data;
