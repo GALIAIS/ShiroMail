@@ -97,15 +97,16 @@ func (s *Service) CreateMailbox(ctx context.Context, userID uint64, req CreateMa
 		}
 
 		item, createErr := s.repo.Create(ctx, Mailbox{
-			UserID:    userID,
-			DomainID:  selectedDomain.ID,
-			Domain:    selectedDomain.Domain,
-			LocalPart: localPart,
-			Address:   localPart + "@" + selectedDomain.Domain,
-			Status:    "active",
-			ExpiresAt: expiresAt,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			UserID:        userID,
+			DomainID:      selectedDomain.ID,
+			Domain:        selectedDomain.Domain,
+			LocalPart:     localPart,
+			Address:       localPart + "@" + selectedDomain.Domain,
+			Status:        "active",
+			ExpiresAt:     expiresAt,
+			RetentionDays: req.RetentionDays,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
 		})
 		if createErr == nil {
 			s.invalidateCaches(ctx, userID)

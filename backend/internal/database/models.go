@@ -223,6 +223,7 @@ type MailboxRow struct {
 	ExpiresAt     time.Time  `gorm:"column:expires_at"`
 	IsFavorite    bool       `gorm:"column:is_favorite"`
 	Source        string     `gorm:"column:source"`
+	RetentionDays int        `gorm:"column:retention_days"`
 	LastMessageAt *time.Time `gorm:"column:last_message_at"`
 	CreatedAt     time.Time  `gorm:"column:created_at"`
 	UpdatedAt     time.Time  `gorm:"column:updated_at"`

@@ -108,6 +108,7 @@ export type MailboxItem = {
   address: string;
   status: string;
   expiresAt: string;
+  retentionDays: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -705,12 +706,12 @@ export async function fetchMailboxMessageAttachmentBlob(mailboxId: number, messa
   return response.data instanceof Blob ? response.data : new Blob([response.data]);
 }
 
-export async function createMailbox(input: { domainId: number; expiresInHours: number }) {
+export async function createMailbox(input: { domainId: number; expiresInHours: number; retentionDays?: number }) {
   const { data } = await http.post<MailboxItem>("/mailboxes", input);
   return data;
 }
 
-export async function createCustomMailbox(input: { domainId: number; expiresInHours: number; localPart: string }) {
+export async function createCustomMailbox(input: { domainId: number; expiresInHours: number; localPart: string; retentionDays?: number }) {
   const { data } = await http.post<MailboxItem>("/mailboxes", input);
   return data;
 }
@@ -810,6 +811,19 @@ export type WebhookDeliveryLog = {
 export async function fetchWebhookDeliveries(webhookId: number) {
   const { data } = await http.get<{ items: WebhookDeliveryLog[] }>(`/portal/webhooks/${webhookId}/deliveries`);
   return data.items ?? [];
+}
+
+export type WebhookTestResult = {
+  success: boolean;
+  responseStatus: number;
+  responseBody: string;
+  latencyMs: number;
+  errorMessage?: string;
+};
+
+export async function testWebhook(webhookId: number) {
+  const { data } = await http.post<WebhookTestResult>(`/portal/webhooks/${webhookId}/test`);
+  return data;
 }
 
 export async function fetchDocs() {

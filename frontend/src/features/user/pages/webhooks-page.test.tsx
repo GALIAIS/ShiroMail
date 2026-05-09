@@ -10,6 +10,7 @@ vi.mock("../api", () => ({
   createWebhook: vi.fn(),
   updateWebhook: vi.fn(),
   toggleWebhook: vi.fn(),
+  testWebhook: vi.fn(),
 }));
 
 describe("UserWebhooksPage", () => {

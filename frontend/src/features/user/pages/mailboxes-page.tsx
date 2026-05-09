@@ -102,6 +102,7 @@ export function UserMailboxPage() {
   const [mailboxesPage, setMailboxesPage] = useState(1);
   const [domainId, setDomainId] = useState("");
   const [ttlHours, setTtlHours] = useState<number>(24);
+  const [retentionDays, setRetentionDays] = useState<number>(0);
   const [localPart, setLocalPart] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
@@ -416,6 +417,7 @@ export function UserMailboxPage() {
       domainId: Number(effectiveDomainId),
       expiresInHours: ttlHours,
       localPart: localPart.trim().toLowerCase(),
+      retentionDays,
     });
   }
 
@@ -530,6 +532,8 @@ export function UserMailboxPage() {
               onTtlHoursChange={setTtlHours}
               localPart={localPart}
               onLocalPartChange={setLocalPart}
+              retentionDays={retentionDays}
+              onRetentionDaysChange={setRetentionDays}
               feedback={feedback}
               isPending={createMutation.isPending}
               onSubmit={handleCreateMailbox}

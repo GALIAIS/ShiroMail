@@ -37,6 +37,7 @@ import {
 import {
   createWebhook,
   fetchWebhooks,
+  testWebhook,
   toggleWebhook,
   updateWebhook,
   type WebhookItem,
@@ -99,6 +100,21 @@ export function UserWebhooksPage() {
     },
     onError: (error) => {
       setMutationError(getAPIErrorMessage(error, "切换 Webhook 状态失败，请稍后重试。"));
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: (id: number) => testWebhook(id),
+    onSuccess: (result) => {
+      if (result.success) {
+        setActionNotice(`测试发送成功，状态码 ${result.responseStatus}，耗时 ${result.latencyMs}ms。`);
+      } else {
+        const detail = result.errorMessage || `状态码 ${result.responseStatus}`;
+        setMutationError(`测试发送失败：${detail}`);
+      }
+    },
+    onError: (error) => {
+      setMutationError(getAPIErrorMessage(error, "测试发送失败，请稍后重试。"));
     },
   });
 
@@ -256,6 +272,14 @@ export function UserWebhooksPage() {
                     <span>{formatDateTime(item.updatedAt)}</span>
                     <Button onClick={() => startEdit(item)} size="sm" variant="secondary">
                       编辑
+                    </Button>
+                    <Button
+                      disabled={testMutation.isPending}
+                      onClick={() => testMutation.mutate(item.id)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      {testMutation.isPending && testMutation.variables === item.id ? "发送中..." : "测试"}
                     </Button>
                     <Button asChild size="sm" variant="ghost">
                       <Link to={`/dashboard/webhooks/${item.id}/logs`}>日志</Link>

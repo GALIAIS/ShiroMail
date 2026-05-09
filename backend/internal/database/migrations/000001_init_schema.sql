@@ -480,3 +480,5 @@ CREATE INDEX idx_api_key_domain_bindings_api_key ON api_key_domain_bindings (api
 CREATE INDEX idx_inbound_message_spool_status_id ON inbound_message_spool (status, id);
 
 CREATE FULLTEXT INDEX ft_messages_search ON messages (from_addr, subject, text_preview);
+
+ALTER TABLE mailboxes ADD COLUMN retention_days INT NOT NULL DEFAULT 0;

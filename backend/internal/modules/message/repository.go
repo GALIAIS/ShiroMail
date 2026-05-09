@@ -2,6 +2,7 @@ package message
 
 import (
 	"context"
+	"time"
 
 	"shiro-email/backend/internal/modules/ingest"
 )
@@ -16,6 +17,7 @@ type Repository interface {
 	GetByMailboxAndID(ctx context.Context, mailboxID uint64, messageID uint64) (Message, error)
 	SoftDeleteByMailboxIDs(ctx context.Context, mailboxIDs []uint64) error
 	SoftDeleteByIDs(ctx context.Context, messageIDs []uint64) error
+	SoftDeleteOlderThan(ctx context.Context, mailboxID uint64, before time.Time) error
 	SetReadByIDs(ctx context.Context, messageIDs []uint64, read bool) error
 	MailboxIDsByMessageIDs(ctx context.Context, messageIDs []uint64) (map[uint64]uint64, error)
 	CountToday(ctx context.Context) int
@@ -72,6 +74,10 @@ func (r *MemoryRepository) CountUnreadByMailboxIDs(_ context.Context, _ []uint64
 }
 
 func (r *MemoryRepository) SoftDeleteByIDs(_ context.Context, _ []uint64) error {
+	return nil
+}
+
+func (r *MemoryRepository) SoftDeleteOlderThan(_ context.Context, _ uint64, _ time.Time) error {
 	return nil
 }
 

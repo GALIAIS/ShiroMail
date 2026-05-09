@@ -301,6 +301,13 @@ func (r *MySQLRepository) SoftDeleteByIDs(ctx context.Context, messageIDs []uint
 		Update("is_deleted", true).Error
 }
 
+func (r *MySQLRepository) SoftDeleteOlderThan(ctx context.Context, mailboxID uint64, before time.Time) error {
+	return r.db.WithContext(ctx).
+		Model(&database.MessageRow{}).
+		Where("mailbox_id = ? AND is_deleted = ? AND received_at < ?", mailboxID, false, before).
+		Update("is_deleted", true).Error
+}
+
 func (r *MySQLRepository) SetReadByIDs(ctx context.Context, messageIDs []uint64, read bool) error {
 	if len(messageIDs) == 0 {
 		return nil

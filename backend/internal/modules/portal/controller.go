@@ -1,18 +1,39 @@
 package portal
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Controller struct {
-	service *Service
+type WebhookTestResult struct {
+	Success        bool   `json:"success"`
+	ResponseStatus int    `json:"responseStatus"`
+	ResponseBody   string `json:"responseBody"`
+	LatencyMs      int    `json:"latencyMs"`
+	ErrorMessage   string `json:"errorMessage,omitempty"`
 }
 
-func NewController(service *Service) *Controller {
-	return &Controller{service: service}
+type WebhookTester interface {
+	TestDeliver(ctx context.Context, userID uint64, wh Webhook) WebhookTestResult
+}
+
+type Controller struct {
+	service       *Service
+	webhookTester WebhookTester
+}
+
+func NewController(service *Service, extras ...any) *Controller {
+	c := &Controller{service: service}
+	for _, extra := range extras {
+		switch v := extra.(type) {
+		case WebhookTester:
+			c.webhookTester = v
+		}
+	}
+	return c
 }
 
 func (c *Controller) Overview(ctx *gin.Context) {
@@ -244,6 +265,30 @@ func (c *Controller) ListWebhookDeliveryLogs(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (c *Controller) TestWebhook(ctx *gin.Context) {
+	userID, ok := authUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+	webhookID, ok := parseParamID(ctx, "id")
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		return
+	}
+	wh, err := c.service.TestWebhook(ctx, userID, webhookID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+		return
+	}
+	if c.webhookTester == nil {
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{"message": "webhook dispatcher not available"})
+		return
+	}
+	result := c.webhookTester.TestDeliver(ctx.Request.Context(), userID, wh)
+	ctx.JSON(http.StatusOK, result)
 }
 
 func (c *Controller) ListDocs(ctx *gin.Context) {

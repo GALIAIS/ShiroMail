@@ -15,6 +15,15 @@ const ttlOptions = [
   { label: "168 小时", value: "168", keywords: ["7 days", "168"] },
 ];
 
+const retentionOptions = [
+  { label: "永久保留", value: "0", keywords: ["forever", "keep", "永久"] },
+  { label: "7 天", value: "7", keywords: ["7 days", "一周"] },
+  { label: "14 天", value: "14", keywords: ["14 days", "两周"] },
+  { label: "30 天", value: "30", keywords: ["30 days", "一个月"] },
+  { label: "60 天", value: "60", keywords: ["60 days", "两个月"] },
+  { label: "90 天", value: "90", keywords: ["90 days", "三个月"] },
+];
+
 type Props = {
   domains: DomainOption[];
   effectiveDomainId: string;
@@ -23,6 +32,8 @@ type Props = {
   onTtlHoursChange: (value: number) => void;
   localPart: string;
   onLocalPartChange: (value: string) => void;
+  retentionDays: number;
+  onRetentionDaysChange: (value: number) => void;
   feedback: string | null;
   isPending: boolean;
   onSubmit: () => void;
@@ -36,6 +47,8 @@ export function MailboxCreateForm({
   onTtlHoursChange,
   localPart,
   onLocalPartChange,
+  retentionDays,
+  onRetentionDaysChange,
   feedback,
   isPending,
   onSubmit,
@@ -72,7 +85,7 @@ export function MailboxCreateForm({
           <span>创建新邮箱</span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_180px_auto]">
+        <div className="grid gap-4 md:grid-cols-[1fr_180px_180px_auto]">
           <WorkspaceField label="域名">
             <OptionCombobox
               ariaLabel="选择域名"
@@ -98,6 +111,18 @@ export function MailboxCreateForm({
               placeholder="选择有效期"
               searchPlaceholder="搜索有效期"
               value={String(ttlHours)}
+            />
+          </WorkspaceField>
+
+          <WorkspaceField label="消息保留">
+            <OptionCombobox
+              ariaLabel="消息保留时间"
+              emptyLabel="没有匹配的保留时间"
+              onValueChange={(value) => onRetentionDaysChange(Number(value))}
+              options={retentionOptions}
+              placeholder="选择保留时间"
+              searchPlaceholder="搜索保留时间"
+              value={String(retentionDays)}
             />
           </WorkspaceField>
 

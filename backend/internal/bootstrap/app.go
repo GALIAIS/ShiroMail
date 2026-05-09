@@ -60,6 +60,7 @@ type AppState struct {
 	RedisClient   *redis.Client
 	WSHub         *realtime.Hub
 	DB            *gorm.DB
+	WebhookDispatcher *webhook.Dispatcher
 }
 
 func MustRunHTTPServer() {
@@ -270,7 +271,11 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	messageService := message.NewService(state.MessageRepo, state.MailboxRepo, state.DomainRepo, state.MailStorage, state.Cache)
 	messageController := message.NewController(messageService, state.DirectIngest)
 	portalService := portal.NewService(state.PortalRepo, state.AuthRepo)
-	portalController := portal.NewController(portalService)
+	var webhookTester portal.WebhookTester
+	if state.WebhookDispatcher != nil {
+		webhookTester = &webhookTesterAdapter{dispatcher: state.WebhookDispatcher}
+	}
+	portalController := portal.NewController(portalService, webhookTester)
 	adminService := admin.NewService(state.AuthRepo, state.DomainRepo, domainService, state.MailboxRepo, state.MessageRepo, messageService, state.PortalRepo, state.JobRepo, state.AuditRepo, state.Cache)
 	adminController := admin.NewController(adminService)
 	ruleService := rule.NewService(state.RuleRepo, state.AuditRepo)
@@ -638,6 +643,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	api.PUT("/portal/webhooks/:id", authGuard, portalController.UpdateWebhook)
 	api.POST("/portal/webhooks/:id/toggle", authGuard, portalController.ToggleWebhook)
 	api.GET("/portal/webhooks/:id/deliveries", authGuard, portalController.ListWebhookDeliveryLogs)
+	api.POST("/portal/webhooks/:id/test", authGuard, portalController.TestWebhook)
 	api.GET("/portal/domain-providers", authGuard, domainController.ListOwnedProviderAccounts)
 	api.POST("/portal/domain-providers", authGuard, domainController.CreateOwnedProviderAccount)
 	api.PUT("/portal/domain-providers/:id", authGuard, domainController.UpdateOwnedProviderAccount)
@@ -865,6 +871,7 @@ func newRuntimePersistentState(cfg config.Config) (*AppState, error) {
 
 	state.WSHub = realtime.NewHub()
 	webhookDispatcher := webhook.NewDispatcher(state.PortalRepo, state.DB)
+	state.WebhookDispatcher = webhookDispatcher
 	messageService := message.NewService(state.MessageRepo, state.MailboxRepo, state.DomainRepo, state.MailStorage, state.Cache)
 	if state.DirectIngest != nil {
 		state.DirectIngest.SetDeliveryCallback(func(userID uint64, mailboxID uint64, mailboxAddress string, subject string) {
@@ -1242,4 +1249,19 @@ func parseRedisInfoString(info string, key string) string {
 		}
 	}
 	return ""
+}
+
+type webhookTesterAdapter struct {
+	dispatcher *webhook.Dispatcher
+}
+
+func (a *webhookTesterAdapter) TestDeliver(ctx context.Context, userID uint64, wh portal.Webhook) portal.WebhookTestResult {
+	result := a.dispatcher.TestDeliver(ctx, userID, wh)
+	return portal.WebhookTestResult{
+		Success:        result.Success,
+		ResponseStatus: result.ResponseStatus,
+		ResponseBody:   result.ResponseBody,
+		LatencyMs:      result.LatencyMs,
+		ErrorMessage:   result.ErrorMessage,
+	}
 }

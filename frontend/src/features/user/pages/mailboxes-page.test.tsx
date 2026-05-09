@@ -61,6 +61,7 @@ describe("UserMailboxPage", () => {
           address: "alpha@example.test",
           status: "active",
           expiresAt: "2026-04-03T10:00:00Z",
+          retentionDays: 0,
           createdAt: "2026-04-02T10:00:00Z",
           updatedAt: "2026-04-02T10:00:00Z",
         },

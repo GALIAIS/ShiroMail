@@ -26,6 +26,10 @@ func runWorkerCycle(ctx context.Context, mailboxRepo mailbox.Repository, message
 		recordWorkerFailure(ctx, jobRepo, "cleanup_expired", err)
 		return err
 	}
+	if err := jobs.RunCleanupRetentionJob(ctx, mailboxRepo, messageRepo); err != nil {
+		recordWorkerFailure(ctx, jobRepo, "cleanup_retention", err)
+		return err
+	}
 	return nil
 }
 

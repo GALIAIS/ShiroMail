@@ -258,6 +258,19 @@ func (s *Service) ListWebhookDeliveryLogs(ctx context.Context, userID uint64, we
 	return s.repo.ListWebhookDeliveryLogs(ctx, userID, webhookID, 50)
 }
 
+func (s *Service) TestWebhook(ctx context.Context, userID uint64, webhookID uint64) (Webhook, error) {
+	items, err := s.repo.ListWebhooksByUser(ctx, userID)
+	if err != nil {
+		return Webhook{}, err
+	}
+	for _, item := range items {
+		if item.ID == webhookID {
+			return item, nil
+		}
+	}
+	return Webhook{}, ErrNotFound
+}
+
 func (s *Service) ListDocs(ctx context.Context) ([]DocArticle, error) {
 	return s.repo.ListDocs(ctx)
 }

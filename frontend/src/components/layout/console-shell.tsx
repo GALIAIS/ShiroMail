@@ -32,6 +32,7 @@ import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
 import { ConsoleBreadcrumb } from "./console-breadcrumb";
 import { GlobalSearchDialog, useGlobalSearchShortcut } from "./global-search-dialog";
 import { NotificationDropdown } from "./notification-dropdown";
+import { SidebarMailboxList } from "./sidebar-mailbox-list";
 import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket";
 import { useNotificationStore } from "@/stores/notification-store";
 import { showInfo } from "@/lib/toast";
@@ -166,6 +167,7 @@ export function ConsoleShell({
         </SidebarContent>
 
         <SidebarFooter className="gap-3 px-3 pb-4 pt-2">
+          {role === "user" ? <SidebarMailboxList /> : null}
           {role === "admin" ? (
             <Badge
               className="w-full justify-center rounded-full bg-sidebar-accent px-3 text-xs text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
