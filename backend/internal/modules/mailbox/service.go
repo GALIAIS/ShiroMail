@@ -25,11 +25,16 @@ type Service struct {
 	repo          Repository
 	domainRepo    domain.Repository
 	messagePurger messagePurger
+	unreadCounter unreadCounter
 	cache         *sharedcache.JSONCache
 }
 
 type messagePurger interface {
 	SoftDeleteByMailboxIDs(ctx context.Context, mailboxIDs []uint64) error
+}
+
+type unreadCounter interface {
+	CountUnreadByMailboxIDs(ctx context.Context, mailboxIDs []uint64) (map[uint64]int, error)
 }
 
 func NewService(repo Repository, domainRepo domain.Repository, extras ...any) *Service {
@@ -42,6 +47,11 @@ func NewService(repo Repository, domainRepo domain.Repository, extras ...any) *S
 		switch value := extra.(type) {
 		case messagePurger:
 			service.messagePurger = value
+			if uc, ok := extra.(unreadCounter); ok {
+				service.unreadCounter = uc
+			}
+		case unreadCounter:
+			service.unreadCounter = value
 		case *sharedcache.JSONCache:
 			service.cache = value
 		}
@@ -287,7 +297,19 @@ func (s *Service) BuildDashboard(ctx context.Context, userID uint64, apiKeys ...
 		ActiveMailboxCount: len(items),
 		AvailableDomains:   availableDomains,
 		Mailboxes:          items,
+		UnreadCounts:       map[uint64]int{},
 	}
+
+	if s.unreadCounter != nil && len(items) > 0 {
+		ids := make([]uint64, 0, len(items))
+		for _, item := range items {
+			ids = append(ids, item.ID)
+		}
+		if counts, err := s.unreadCounter.CountUnreadByMailboxIDs(ctx, ids); err == nil {
+			payload.UnreadCounts = counts
+		}
+	}
+
 	if s.cache != nil && apiKey == nil {
 		_ = s.cache.Set(ctx, dashboardCacheKey(userID), time.Minute, payload)
 	}

@@ -47,6 +47,7 @@ export function UserDashboardPage() {
   const domains = dashboard?.availableDomains ?? [];
   const ownedDomains = domains.filter((item) => item.ownerUserId === sessionUserId);
   const mailboxes = dashboard?.mailboxes ?? [];
+  const unreadCounts = dashboard?.unreadCounts ?? {};
   const rootDomainCount = ownedDomains.filter((item) => item.kind === "root").length;
   const childDomainCount = Math.max(0, ownedDomains.length - rootDomainCount);
 
@@ -251,7 +252,9 @@ export function UserDashboardPage() {
       >
         {mailboxes.length ? (
           <div className="space-y-3">
-            {mailboxes.slice(0, 5).map((mailbox) => (
+            {mailboxes.slice(0, 5).map((mailbox) => {
+              const unread = unreadCounts[mailbox.id] ?? 0;
+              return (
               <WorkspaceListRow
                 description={`${mailbox.domain} · ${
                   mailbox.status === "active" ? t("dashboard.mailboxStatusActive") : t("dashboard.mailboxStatusReleased")
@@ -259,13 +262,19 @@ export function UserDashboardPage() {
                 key={mailbox.id}
                 meta={
                   <>
+                    {unread > 0 && (
+                      <Badge variant="default" className="rounded-full px-2 text-xs">
+                        {unread}
+                      </Badge>
+                    )}
                     <WorkspaceBadge>{mailbox.localPart}</WorkspaceBadge>
                     <span>{formatDateTime(mailbox.expiresAt)}</span>
                   </>
                 }
                 title={mailbox.address}
               />
-            ))}
+              );
+            })}
           </div>
         ) : (
           <WorkspaceEmpty

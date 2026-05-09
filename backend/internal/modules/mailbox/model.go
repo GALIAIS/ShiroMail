@@ -34,4 +34,5 @@ type DashboardPayload struct {
 	ActiveMailboxCount int             `json:"activeMailboxCount"`
 	AvailableDomains   []domain.Domain `json:"availableDomains"`
 	Mailboxes          []Mailbox       `json:"mailboxes"`
+	UnreadCounts       map[uint64]int  `json:"unreadCounts"`
 }

@@ -117,6 +117,7 @@ export type DashboardPayload = {
   activeMailboxCount: number;
   availableDomains: DomainOption[];
   mailboxes: MailboxItem[];
+  unreadCounts: Record<number, number>;
 };
 
 export type PortalOverview = {

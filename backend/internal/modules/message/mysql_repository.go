@@ -378,6 +378,33 @@ func (r *MySQLRepository) CountDailyRangeByUser(ctx context.Context, userID uint
 	return result, nil
 }
 
+func (r *MySQLRepository) CountUnreadByMailboxIDs(ctx context.Context, mailboxIDs []uint64) (map[uint64]int, error) {
+	if len(mailboxIDs) == 0 {
+		return map[uint64]int{}, nil
+	}
+
+	type row struct {
+		MailboxID uint64
+		Total     int64
+	}
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Model(&database.MessageRow{}).
+		Select("mailbox_id, COUNT(*) AS total").
+		Where("mailbox_id IN ? AND is_read = ? AND is_deleted = ?", mailboxIDs, false, false).
+		Group("mailbox_id").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint64]int, len(rows))
+	for _, r := range rows {
+		result[r.MailboxID] = int(r.Total)
+	}
+	return result, nil
+}
+
 func (r *MySQLRepository) loadMessageSummaryRows(ctx context.Context, mailboxID uint64, query string) ([]database.MessageRow, error) {
 	db := r.db.WithContext(ctx).
 		Select([]string{

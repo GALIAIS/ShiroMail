@@ -18,6 +18,7 @@ type Repository interface {
 	CountToday(ctx context.Context) int
 	CountDailyRange(ctx context.Context, days int) ([]DailyCount, error)
 	CountDailyRangeByUser(ctx context.Context, userID uint64, days int) ([]DailyCount, error)
+	CountUnreadByMailboxIDs(ctx context.Context, mailboxIDs []uint64) (map[uint64]int, error)
 }
 
 type DailyCount struct {
@@ -59,4 +60,8 @@ func (r *MemoryRepository) CountDailyRange(_ context.Context, days int) ([]Daily
 
 func (r *MemoryRepository) CountDailyRangeByUser(_ context.Context, _ uint64, days int) ([]DailyCount, error) {
 	return r.CountDailyRange(nil, days)
+}
+
+func (r *MemoryRepository) CountUnreadByMailboxIDs(_ context.Context, _ []uint64) (map[uint64]int, error) {
+	return map[uint64]int{}, nil
 }
