@@ -25,6 +25,26 @@ func NewController(service *Service, receiver ...InboundReceiver) *Controller {
 	return &Controller{service: service, receiver: optional}
 }
 
+func (c *Controller) Trend(ctx *gin.Context) {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
+	days := 7
+	if d, err := strconv.Atoi(ctx.Query("days")); err == nil && d > 0 {
+		days = d
+	}
+
+	items, err := c.service.MessageTrend(ctx, userID, days)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load trend"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"items": items})
+}
+
 func (c *Controller) ListByMailbox(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {

@@ -305,6 +305,79 @@ func (r *MySQLRepository) CountToday(ctx context.Context) int {
 	return int(count)
 }
 
+func (r *MySQLRepository) CountDailyRange(ctx context.Context, days int) ([]DailyCount, error) {
+	if days <= 0 {
+		days = 7
+	}
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -(days-1))
+
+	type row struct {
+		Day   string
+		Total int64
+	}
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Model(&database.MessageRow{}).
+		Select("DATE(received_at) AS day, COUNT(*) AS total").
+		Where("is_deleted = ? AND received_at >= ?", false, start).
+		Group("day").
+		Order("day ASC").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	dateMap := make(map[string]int, len(rows))
+	for _, r := range rows {
+		dateMap[r.Day] = int(r.Total)
+	}
+
+	result := make([]DailyCount, 0, days)
+	for i := 0; i < days; i++ {
+		d := start.AddDate(0, 0, i).Format("2006-01-02")
+		result = append(result, DailyCount{Date: d, Count: dateMap[d]})
+	}
+	return result, nil
+}
+
+func (r *MySQLRepository) CountDailyRangeByUser(ctx context.Context, userID uint64, days int) ([]DailyCount, error) {
+	if days <= 0 {
+		days = 7
+	}
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -(days-1))
+
+	type row struct {
+		Day   string
+		Total int64
+	}
+	var rows []row
+	err := r.db.WithContext(ctx).
+		Table("messages").
+		Select("DATE(messages.received_at) AS day, COUNT(*) AS total").
+		Joins("JOIN mailboxes ON mailboxes.id = messages.mailbox_id").
+		Where("messages.is_deleted = ? AND messages.received_at >= ? AND mailboxes.user_id = ?", false, start, userID).
+		Group("day").
+		Order("day ASC").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	dateMap := make(map[string]int, len(rows))
+	for _, r := range rows {
+		dateMap[r.Day] = int(r.Total)
+	}
+
+	result := make([]DailyCount, 0, days)
+	for i := 0; i < days; i++ {
+		d := start.AddDate(0, 0, i).Format("2006-01-02")
+		result = append(result, DailyCount{Date: d, Count: dateMap[d]})
+	}
+	return result, nil
+}
+
 func (r *MySQLRepository) loadMessageSummaryRows(ctx context.Context, mailboxID uint64, query string) ([]database.MessageRow, error) {
 	db := r.db.WithContext(ctx).
 		Select([]string{

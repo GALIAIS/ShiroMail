@@ -1,6 +1,7 @@
 const translation = {
   common: {
     refresh: "Refresh",
+    loading: "Loading...",
     logout: "Log out",
     theme: "Theme",
     language: "Language",
@@ -442,6 +443,10 @@ const translation = {
       afternoon: "Good afternoon",
       evening: "Good evening",
     },
+    trendTitle: "Message Trend",
+    trendDescription: "Daily message count across all your mailboxes.",
+    trendDaysSuffix: "d",
+    trendMessages: "Messages",
   },
   settings: {
     title: "Settings",

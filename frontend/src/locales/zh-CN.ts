@@ -1,6 +1,7 @@
 const translation = {
   common: {
     refresh: "刷新数据",
+    loading: "加载中...",
     logout: "退出登录",
     theme: "主题",
     language: "语言",
@@ -421,6 +422,10 @@ const translation = {
       afternoon: "下午好",
       evening: "晚上好",
     },
+    trendTitle: "收件趋势",
+    trendDescription: "按天统计当前账号下所有邮箱的收件数量。",
+    trendDaysSuffix: "天",
+    trendMessages: "收件数",
   },
   settings: {
     title: "账户设置",

@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,13 @@ import {
   MailPlus,
   MessageSquareText,
   Sparkles,
+  TrendingUp,
   Webhook,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
 import { fetchDashboard, fetchPortalOverview } from "../api";
+import { MessageTrendChart } from "../components/message-trend-chart";
 import { formatDateTime } from "./shared";
 
 export function UserDashboardPage() {
@@ -38,6 +41,7 @@ export function UserDashboardPage() {
 
   const dashboard = dashboardQuery.data;
   const overview = overviewQuery.data;
+  const [trendDays, setTrendDays] = useState(7);
   const displayName = sessionUsername || overview?.username || "Shiro 用户";
   const greeting = getGreeting(t);
   const domains = dashboard?.availableDomains ?? [];
@@ -115,6 +119,32 @@ export function UserDashboardPage() {
             <WorkspaceMetric hint={item.hint} icon={item.icon} key={item.label} label={item.label} value={item.value} />
           ))}
         </div>
+      </WorkspacePanel>
+
+      <WorkspacePanel
+        action={
+          <div className="flex items-center gap-1">
+            {([7, 14, 30] as const).map((d) => (
+              <Button
+                key={d}
+                size="sm"
+                variant={trendDays === d ? "default" : "ghost"}
+                onClick={() => setTrendDays(d)}
+              >
+                {d}{t("dashboard.trendDaysSuffix")}
+              </Button>
+            ))}
+          </div>
+        }
+        description={t("dashboard.trendDescription")}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <TrendingUp className="size-4" />
+            {t("dashboard.trendTitle")}
+          </span>
+        }
+      >
+        <MessageTrendChart days={trendDays} />
       </WorkspacePanel>
 
       <WorkspacePanel

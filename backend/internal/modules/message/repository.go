@@ -16,6 +16,13 @@ type Repository interface {
 	GetByMailboxAndID(ctx context.Context, mailboxID uint64, messageID uint64) (Message, error)
 	SoftDeleteByMailboxIDs(ctx context.Context, mailboxIDs []uint64) error
 	CountToday(ctx context.Context) int
+	CountDailyRange(ctx context.Context, days int) ([]DailyCount, error)
+	CountDailyRangeByUser(ctx context.Context, userID uint64, days int) ([]DailyCount, error)
+}
+
+type DailyCount struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
 }
 
 type MemoryRepository struct {
@@ -40,4 +47,16 @@ func (r *MemoryRepository) SearchSummaryByMailboxID(ctx context.Context, mailbox
 		return nil, err
 	}
 	return summarizeMessages(items), nil
+}
+
+func (r *MemoryRepository) CountDailyRange(_ context.Context, days int) ([]DailyCount, error) {
+	result := make([]DailyCount, days)
+	for i := range result {
+		result[i] = DailyCount{Date: "2006-01-01", Count: 0}
+	}
+	return result, nil
+}
+
+func (r *MemoryRepository) CountDailyRangeByUser(_ context.Context, _ uint64, days int) ([]DailyCount, error) {
+	return r.CountDailyRange(nil, days)
 }

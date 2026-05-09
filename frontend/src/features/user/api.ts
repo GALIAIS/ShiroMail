@@ -385,6 +385,16 @@ export async function fetchDashboard() {
   return data;
 }
 
+export type DailyTrendItem = {
+  date: string;
+  count: number;
+};
+
+export async function fetchDashboardTrend(days = 7) {
+  const { data } = await http.get<{ items: DailyTrendItem[] }>("/dashboard/trend", { params: { days } });
+  return data.items;
+}
+
 export async function fetchPortalOverview() {
   const { data } = await http.get<PortalOverview>("/portal/overview");
   return data;

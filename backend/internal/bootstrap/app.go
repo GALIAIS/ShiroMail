@@ -553,6 +553,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	api.POST("/domains/:id/public-pool", apiKeyGuard, middleware.RequireAPIScope("domains.publish"), domainController.RequestPublicPoolPublication)
 	api.POST("/domains/:id/public-pool/withdraw", apiKeyGuard, middleware.RequireAPIScope("domains.unpublish"), domainController.WithdrawPublicPoolPublication)
 	api.GET("/dashboard", apiKeyGuard, middleware.RequireAPIScope("mailboxes.read"), middleware.RequireAPIScope("domains.read"), mailboxController.Dashboard)
+	api.GET("/dashboard/trend", authGuard, messageController.Trend)
 	api.GET("/mailboxes", apiKeyGuard, middleware.RequireAPIScope("mailboxes.read"), mailboxController.List)
 	api.POST("/mailboxes", mailboxWriteRL, apiKeyGuard, middleware.RequireAPIScope("mailboxes.write"), mailboxController.Create)
 	api.POST("/mailboxes/:mailboxId/extend", mailboxWriteRL, apiKeyGuard, middleware.RequireAPIScope("mailboxes.write"), mailboxController.Extend)

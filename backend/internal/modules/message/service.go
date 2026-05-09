@@ -192,6 +192,13 @@ func (s *Service) InvalidateMailboxListCache(ctx context.Context, mailboxID uint
 	_ = s.cache.DeleteByPattern(ctx, mailboxMessageListCachePattern(mailboxID))
 }
 
+func (s *Service) MessageTrend(ctx context.Context, userID uint64, days int) ([]DailyCount, error) {
+	if days <= 0 || days > 90 {
+		days = 7
+	}
+	return s.repo.CountDailyRangeByUser(ctx, userID, days)
+}
+
 func (s *Service) listSummaries(ctx context.Context, mailboxID uint64, query string) ([]Summary, error) {
 	cacheKey := mailboxMessageListCacheKey(mailboxID, query)
 	if query == "" && s.cache != nil {
