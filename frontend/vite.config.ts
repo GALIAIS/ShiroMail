@@ -20,11 +20,22 @@ export default defineConfig({
     target: "es2020",
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom", "react-router-dom"],
-          query: ["@tanstack/react-query"],
-          ui: ["radix-ui", "class-variance-authority", "clsx", "tailwind-merge", "lucide-react"],
-          i18n: ["i18next", "react-i18next"],
+        manualChunks(id: string) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/react-router")) {
+            return "react";
+          }
+          if (id.includes("node_modules/@tanstack/react-query")) {
+            return "query";
+          }
+          if (id.includes("node_modules/radix-ui") || id.includes("node_modules/class-variance-authority") || id.includes("node_modules/lucide-react")) {
+            return "ui";
+          }
+          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) {
+            return "i18n";
+          }
+          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-")) {
+            return "charts";
+          }
         },
       },
     },
