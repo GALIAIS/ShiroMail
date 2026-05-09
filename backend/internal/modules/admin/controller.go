@@ -1,11 +1,13 @@
 package admin
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"mime"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/modules/auth"
@@ -535,6 +537,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	var req struct {
 		Name           string                       `json:"name"`
 		Scopes         []string                     `json:"scopes"`
+		ExpiresAt      *time.Time                   `json:"expiresAt"`
 		ResourcePolicy portal.APIKeyResourcePolicy  `json:"resourcePolicy"`
 		DomainBindings []portal.APIKeyDomainBinding `json:"domainBindings"`
 	}
@@ -546,6 +549,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	item, err := c.service.CreateAPIKey(ctx, actorID, portal.CreateAPIKeyInput{
 		Name:           req.Name,
 		Scopes:         req.Scopes,
+		ExpiresAt:      req.ExpiresAt,
 		ResourcePolicy: req.ResourcePolicy,
 		DomainBindings: req.DomainBindings,
 	})
@@ -1290,6 +1294,68 @@ func (c *Controller) ReviewDomainPublication(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
+}
+
+func (c *Controller) ExportUsersCSV(ctx *gin.Context) {
+	items, err := c.service.ListUsers(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to export users"})
+		return
+	}
+
+	ctx.Header("Content-Type", "text/csv; charset=utf-8")
+	ctx.Header("Content-Disposition", `attachment; filename="users.csv"`)
+	ctx.Writer.WriteHeader(http.StatusOK)
+
+	writer := csv.NewWriter(ctx.Writer)
+	_ = writer.Write([]string{"id", "username", "email", "roles", "status", "email_verified", "mailbox_count"})
+	for _, item := range items {
+		_ = writer.Write([]string{
+			strconv.FormatUint(item.ID, 10),
+			item.Username,
+			item.Email,
+			joinRoles(item.Roles),
+			item.Status,
+			strconv.FormatBool(item.EmailVerified),
+			strconv.Itoa(item.Mailboxes),
+		})
+	}
+	writer.Flush()
+}
+
+func (c *Controller) ExportStatsCSV(ctx *gin.Context) {
+	stats, err := c.service.ExportDailyStats(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to export stats"})
+		return
+	}
+
+	ctx.Header("Content-Type", "text/csv; charset=utf-8")
+	ctx.Header("Content-Disposition", `attachment; filename="stats.csv"`)
+	ctx.Writer.WriteHeader(http.StatusOK)
+
+	writer := csv.NewWriter(ctx.Writer)
+	_ = writer.Write([]string{"date", "total_messages", "active_users", "active_mailboxes"})
+	for _, item := range stats {
+		_ = writer.Write([]string{
+			item.Date,
+			strconv.Itoa(item.TotalMessages),
+			strconv.Itoa(item.ActiveUsers),
+			strconv.Itoa(item.ActiveMailboxes),
+		})
+	}
+	writer.Flush()
+}
+
+func joinRoles(roles []string) string {
+	if len(roles) == 0 {
+		return ""
+	}
+	result := roles[0]
+	for _, role := range roles[1:] {
+		result += "," + role
+	}
+	return result
 }
 
 func currentUserID(ctx *gin.Context) (uint64, bool) {

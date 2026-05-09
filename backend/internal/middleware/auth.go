@@ -117,13 +117,14 @@ func CurrentAPIKey(ctx *gin.Context) (portal.APIKey, bool) {
 
 func bearerToken(ctx *gin.Context) string {
 	header := strings.TrimSpace(ctx.GetHeader("Authorization"))
-	if header == "" {
-		return ""
+	if header != "" && strings.HasPrefix(header, "Bearer ") {
+		return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
 	}
-	if !strings.HasPrefix(header, "Bearer ") {
-		return ""
+	// Fallback: allow token via query parameter for browser-initiated downloads (e.g. CSV export).
+	if qToken := strings.TrimSpace(ctx.Query("token")); qToken != "" {
+		return qToken
 	}
-	return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
+	return ""
 }
 
 func setJWTAuthContext(ctx *gin.Context, userID uint64, roles []string) {

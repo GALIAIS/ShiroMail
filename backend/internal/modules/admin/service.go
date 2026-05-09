@@ -1379,6 +1379,35 @@ func (s *Service) DeleteDoc(ctx context.Context, actorID uint64, docID string) e
 	return nil
 }
 
+type DailyStatItem struct {
+	Date            string `json:"date"`
+	TotalMessages   int    `json:"totalMessages"`
+	ActiveUsers     int    `json:"activeUsers"`
+	ActiveMailboxes int    `json:"activeMailboxes"`
+}
+
+func (s *Service) ExportDailyStats(ctx context.Context) ([]DailyStatItem, error) {
+	today := time.Now().Format("2006-01-02")
+	users, err := s.authRepo.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	activeUsers := 0
+	for _, user := range users {
+		if user.Status == "active" {
+			activeUsers++
+		}
+	}
+	return []DailyStatItem{
+		{
+			Date:            today,
+			TotalMessages:   s.messageRepo.CountToday(ctx),
+			ActiveUsers:     activeUsers,
+			ActiveMailboxes: s.mailboxRepo.CountActive(ctx),
+		},
+	}, nil
+}
+
 func adminOverviewCacheKey() string {
 	return "cache:admin:overview"
 }

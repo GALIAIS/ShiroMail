@@ -12,7 +12,9 @@ import {
   WorkspacePanel,
 } from "@/components/layout/workspace-ui";
 import { Badge } from "@/components/ui/badge";
-import { fetchAdminSystemMonitoring } from "../api";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/lib/auth-store";
+import { fetchAdminSystemMonitoring, getExportStatsURL } from "../api";
 
 function formatUptime(seconds: number): string {
   if (seconds <= 0) return "0s";
@@ -92,10 +94,23 @@ export function AdminMonitoringPage() {
     <WorkspacePage>
       <WorkspacePanel
         action={
-          <Badge className="rounded-full" variant="outline">
-            <Activity className="mr-1 size-3.5" />
-            {t("monitoring.badge")}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                const token = useAuthStore.getState().accessToken;
+                const url = `${getExportStatsURL()}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+                window.open(url, "_blank");
+              }}
+              size="sm"
+              variant="outline"
+            >
+              导出统计 CSV
+            </Button>
+            <Badge className="rounded-full" variant="outline">
+              <Activity className="mr-1 size-3.5" />
+              {t("monitoring.badge")}
+            </Badge>
+          </div>
         }
         description={t("monitoring.description")}
         title={t("monitoring.title")}

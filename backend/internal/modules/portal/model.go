@@ -54,6 +54,7 @@ type APIKey struct {
 	Roles          []string              `json:"roles,omitempty"`
 	ResourcePolicy APIKeyResourcePolicy  `json:"resourcePolicy"`
 	DomainBindings []APIKeyDomainBinding `json:"domainBindings"`
+	ExpiresAt      *time.Time            `json:"expiresAt,omitempty"`
 	LastUsedAt     *time.Time            `json:"lastUsedAt,omitempty"`
 	CreatedAt      time.Time             `json:"createdAt"`
 	RevokedAt      *time.Time            `json:"revokedAt,omitempty"`

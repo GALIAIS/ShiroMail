@@ -440,6 +440,7 @@ type APIKeyRow struct {
 	KeyPreview string     `gorm:"column:key_preview"`
 	SecretHash string     `gorm:"column:secret_hash"`
 	Status     string     `gorm:"column:status"`
+	ExpiresAt  *time.Time `gorm:"column:expires_at"`
 	LastUsedAt *time.Time `gorm:"column:last_used_at"`
 	CreatedAt  time.Time  `gorm:"column:created_at"`
 	RevokedAt  *time.Time `gorm:"column:revoked_at"`

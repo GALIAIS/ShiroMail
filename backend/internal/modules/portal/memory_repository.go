@@ -141,6 +141,9 @@ func (r *MemoryRepository) AuthenticateAPIKey(_ context.Context, presented strin
 		if item.Status != "active" {
 			continue
 		}
+		if item.ExpiresAt != nil && item.ExpiresAt.Before(time.Now()) {
+			continue
+		}
 		if item.KeyPreview != presented && !security.VerifyPassword(item.SecretHash, presented) {
 			continue
 		}

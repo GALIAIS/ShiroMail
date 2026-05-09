@@ -1,15 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Button } from "@/components/ui/button";
 import { OptionCombobox } from "@/components/ui/option-combobox";
 import {
@@ -105,7 +96,7 @@ export function UserMailboxPage() {
   const [retentionDays, setRetentionDays] = useState<number>(0);
   const [localPart, setLocalPart] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [messageViewMode, setMessageViewMode] = useState<MessageViewMode>("text");
   const [cidImageSources, setCIDImageSources] = useState<Record<string, string>>({});
   const [headersSearch, setHeadersSearch] = useState("");
@@ -466,33 +457,7 @@ export function UserMailboxPage() {
 
   return (
     <WorkspacePage>
-      <AlertDialog open={releaseDialogOpen} onOpenChange={setReleaseDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>释放邮箱？</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedMailbox
-                ? `确认释放邮箱 ${selectedMailbox.address}？释放后它会立即从当前列表中移除。`
-                : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!selectedMailbox) {
-                  return;
-                }
-                setFeedback(null);
-                releaseMutation.mutate(selectedMailbox.id);
-                setReleaseDialogOpen(false);
-              }}
-            >
-              确认释放
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {ConfirmDialog}
       <div className="grid gap-6 xl:grid-cols-[1fr_0.92fr]">
         <div className="space-y-6">
           <WorkspacePanel
@@ -591,7 +556,20 @@ export function UserMailboxPage() {
             setFeedback(null);
             extendMutation.mutate({ mailboxId: selectedMailbox.id, expiresInHours: 24 });
           }}
-          onRelease={() => setReleaseDialogOpen(true)}
+          onRelease={async () => {
+            if (!selectedMailbox) return;
+            const confirmed = await confirm({
+              title: "释放邮箱？",
+              description: `确认释放邮箱 ${selectedMailbox.address}？释放后它会立即从当前列表中移除。`,
+              confirmLabel: "确认释放",
+              cancelLabel: "取消",
+              variant: "danger",
+            });
+            if (confirmed) {
+              setFeedback(null);
+              releaseMutation.mutate(selectedMailbox.id);
+            }
+          }}
           isExtendPending={extendMutation.isPending}
           isReleasePending={releaseMutation.isPending}
           onFeedback={setFeedback}

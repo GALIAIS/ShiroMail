@@ -31,8 +31,10 @@ import { NavLink, useLocation } from "react-router-dom";
 import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
 import { ConsoleBreadcrumb } from "./console-breadcrumb";
 import { GlobalSearchDialog, useGlobalSearchShortcut } from "./global-search-dialog";
+import { KeyboardShortcutsIndicator, KeyboardShortcutsHelp } from "./keyboard-shortcuts-ui";
 import { NotificationDropdown } from "./notification-dropdown";
 import { SidebarMailboxList } from "./sidebar-mailbox-list";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket";
 import { useNotificationStore } from "@/stores/notification-store";
 import { showInfo } from "@/lib/toast";
@@ -72,6 +74,7 @@ export function ConsoleShell({
   const roleSubtitle = t(role === "admin" ? "console.subtitle.admin" : "console.subtitle.user");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const searchState = useGlobalSearchShortcut();
+  const kbShortcuts = useKeyboardShortcuts(role);
 
   const addNotification = useNotificationStore((s) => s.addNotification);
   const handleWsMessage = useCallback(
@@ -259,6 +262,12 @@ export function ConsoleShell({
         </div>
       </SidebarInset>
       <GlobalSearchDialog open={searchState.open} onOpenChange={searchState.setOpen} />
+      <KeyboardShortcutsIndicator active={kbShortcuts.leaderActive} />
+      <KeyboardShortcutsHelp
+        open={kbShortcuts.helpOpen}
+        onOpenChange={kbShortcuts.setHelpOpen}
+        shortcuts={kbShortcuts.shortcuts}
+      />
     </SidebarProvider>
   );
 }

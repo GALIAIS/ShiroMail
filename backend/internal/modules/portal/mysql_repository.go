@@ -123,6 +123,7 @@ func (r *MySQLRepository) CreateAPIKey(ctx context.Context, item APIKey) (APIKey
 		KeyPreview: item.KeyPreview,
 		SecretHash: item.SecretHash,
 		Status:     item.Status,
+		ExpiresAt:  item.ExpiresAt,
 	}
 	if err := tx.Create(&row).Error; err != nil {
 		tx.Rollback()
@@ -158,6 +159,10 @@ func (r *MySQLRepository) AuthenticateAPIKey(ctx context.Context, presented stri
 		}
 
 		now := time.Now()
+		if row.ExpiresAt != nil && row.ExpiresAt.Before(now) {
+			continue
+		}
+
 		if err := r.db.WithContext(ctx).
 			Model(&database.APIKeyRow{}).
 			Where("id = ?", row.ID).
@@ -475,6 +480,7 @@ func mapAPIKeyRow(row database.APIKeyRow) APIKey {
 		KeyPreview: row.KeyPreview,
 		SecretHash: row.SecretHash,
 		Status:     row.Status,
+		ExpiresAt:  row.ExpiresAt,
 		LastUsedAt: row.LastUsedAt,
 		CreatedAt:  row.CreatedAt,
 		RevokedAt:  row.RevokedAt,

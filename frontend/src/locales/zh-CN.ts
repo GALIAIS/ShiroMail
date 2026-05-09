@@ -742,6 +742,16 @@ const translation = {
     emptyActivity: "暂无操作记录",
     noActivity: "该用户没有任何操作记录。",
   },
+  shortcuts: {
+    waiting: "等待快捷键...",
+    title: "键盘快捷键",
+    description: "按 G 后再按对应字母即可快速导航。",
+    helpLabel: "显示此帮助",
+  },
+  confirm: {
+    defaultConfirm: "确认",
+    defaultCancel: "取消",
+  },
 } as const;
 
 export default { translation } as const;

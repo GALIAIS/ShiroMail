@@ -744,6 +744,8 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	adminGroup.GET("/jobs/smtp-metrics", systemController.SMTPMetrics)
 	adminGroup.GET("/monitoring", systemController.SystemMonitoring)
 	adminGroup.GET("/audit", systemController.ListAudit)
+	adminGroup.GET("/export/users", adminController.ExportUsersCSV)
+	adminGroup.GET("/export/stats", adminController.ExportStatsCSV)
 
 	return engine
 }

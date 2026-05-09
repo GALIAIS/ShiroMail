@@ -88,6 +88,14 @@ const DEFAULT_RESOURCE_POLICY = {
 
 const USER_API_KEYS_PAGE_SIZE = 8;
 
+const EXPIRATION_OPTIONS = [
+  { value: "", label: "永不过期" },
+  { value: "30", label: "30 天" },
+  { value: "90", label: "90 天" },
+  { value: "365", label: "1 年" },
+  { value: "custom", label: "自定义日期" },
+];
+
 type BindingDraft = {
   domainId: string;
   accessLevel: string;
@@ -109,6 +117,8 @@ export function UserApiKeysPage() {
   const [apiKeysPage, setApiKeysPage] = useState(1);
   const [name, setName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<string[]>(DEFAULT_SCOPES);
+  const [expirationChoice, setExpirationChoice] = useState("");
+  const [customExpirationDate, setCustomExpirationDate] = useState("");
   const [resourcePolicy, setResourcePolicy] = useState(DEFAULT_RESOURCE_POLICY);
   const [bindingDraft, setBindingDraft] = useState<BindingDraft>({
     domainId: "",
@@ -141,6 +151,8 @@ export function UserApiKeysPage() {
       setCreateError(null);
       setName("");
       setSelectedScopes(DEFAULT_SCOPES);
+      setExpirationChoice("");
+      setCustomExpirationDate("");
       setResourcePolicy(DEFAULT_RESOURCE_POLICY);
       setBindingDraft({ domainId: "", accessLevel: "read" });
       setDomainBindings([]);
@@ -236,10 +248,24 @@ export function UserApiKeysPage() {
       setCreateError(modeError);
       return;
     }
+    let expiresAt: string | undefined;
+    if (expirationChoice === "custom") {
+      if (!customExpirationDate) {
+        setCreateError("请选择自定义过期日期。");
+        return;
+      }
+      expiresAt = new Date(customExpirationDate).toISOString();
+    } else if (expirationChoice) {
+      const days = parseInt(expirationChoice, 10);
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      expiresAt = date.toISOString();
+    }
     setCreateError(null);
     createMutation.mutate({
       name: name.trim(),
       scopes: [...selectedScopes].sort(),
+      expiresAt,
       resourcePolicy,
       domainBindings,
     });
@@ -277,6 +303,27 @@ export function UserApiKeysPage() {
                     placeholder="输入密钥名称，如 SDK / Bot / Worker"
                     value={name}
                   />
+                </WorkspaceField>
+
+                <WorkspaceField label="过期时间">
+                  <div className="space-y-2">
+                    <select
+                      className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                      onChange={(event) => setExpirationChoice(event.target.value)}
+                      value={expirationChoice}
+                    >
+                      {EXPIRATION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {expirationChoice === "custom" && (
+                      <Input
+                        onChange={(event) => setCustomExpirationDate(event.target.value)}
+                        type="date"
+                        value={customExpirationDate}
+                      />
+                    )}
+                  </div>
                 </WorkspaceField>
 
                 <div className="space-y-3 rounded-xl border border-border/60 bg-card px-4 py-4">
@@ -631,6 +678,7 @@ export function UserApiKeysPage() {
                       <div className="flex flex-wrap gap-2 text-[0.8rem]">
                         <span>{item.resourcePolicy.domainAccessMode}</span>
                         <span>绑定 {domainBindings.length}</span>
+                        <span>过期 {item.expiresAt ? formatDateTime(item.expiresAt) : "永不"}</span>
                         <span>最近使用 {formatDateTime(item.lastUsedAt)}</span>
                         <span>{formatDomainPolicySummary(item)}</span>
                       </div>

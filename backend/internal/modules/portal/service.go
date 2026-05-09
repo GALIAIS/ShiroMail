@@ -26,6 +26,7 @@ type Service struct {
 type CreateAPIKeyInput struct {
 	Name           string
 	Scopes         []string
+	ExpiresAt      *time.Time
 	ResourcePolicy APIKeyResourcePolicy
 	DomainBindings []APIKeyDomainBinding
 }
@@ -178,6 +179,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, userID uint64, input CreateA
 		SecretHash:     secretHash,
 		Status:         "active",
 		Scopes:         sanitizeAPIKeyScopes(input.Scopes),
+		ExpiresAt:      input.ExpiresAt,
 		ResourcePolicy: normalizeAPIKeyResourcePolicy(input.ResourcePolicy, len(domainBindings) > 0),
 		DomainBindings: domainBindings,
 	})

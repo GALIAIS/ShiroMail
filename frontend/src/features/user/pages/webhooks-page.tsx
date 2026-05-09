@@ -1,16 +1,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -57,7 +48,7 @@ export function UserWebhooksPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const [pendingDisableItem, setPendingDisableItem] = useState<WebhookItem | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
   const webhooksQuery = useQuery({ queryKey: ["portal-webhooks"], queryFn: fetchWebhooks });
 
   const upsertMutation = useMutation({
@@ -160,39 +151,7 @@ export function UserWebhooksPage() {
 
   return (
     <WorkspacePage>
-      <AlertDialog
-        open={pendingDisableItem !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingDisableItem(null);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>停用 Webhook？</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDisableItem
-                ? `确认停用 Webhook ${pendingDisableItem.name}？停用后事件将不再投递到 ${pendingDisableItem.targetUrl}。`
-                : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (!pendingDisableItem) {
-                  return;
-                }
-                toggleMutation.mutate({ id: pendingDisableItem.id, enabled: false });
-                setPendingDisableItem(null);
-              }}
-            >
-              确认停用
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {ConfirmDialog}
       <WorkspacePanel
         action={<Button onClick={startCreate}>创建 Webhook</Button>}
         description="管理事件回调地址、事件范围与启停状态。"
@@ -285,9 +244,18 @@ export function UserWebhooksPage() {
                       <Link to={`/dashboard/webhooks/${item.id}/logs`}>日志</Link>
                     </Button>
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         if (item.enabled) {
-                          setPendingDisableItem(item);
+                          const confirmed = await confirm({
+                            title: "停用 Webhook？",
+                            description: `确认停用 Webhook ${item.name}？停用后事件将不再投递到 ${item.targetUrl}。`,
+                            confirmLabel: "确认停用",
+                            cancelLabel: "取消",
+                            variant: "warning",
+                          });
+                          if (confirmed) {
+                            toggleMutation.mutate({ id: item.id, enabled: false });
+                          }
                           return;
                         }
                         toggleMutation.mutate({ id: item.id, enabled: true });

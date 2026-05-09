@@ -765,6 +765,16 @@ const translation = {
     emptyActivity: "No Activity",
     noActivity: "This user has no recorded activity.",
   },
+  shortcuts: {
+    waiting: "Waiting for shortcut...",
+    title: "Keyboard Shortcuts",
+    description: "Press G followed by a key to navigate quickly.",
+    helpLabel: "Show this help",
+  },
+  confirm: {
+    defaultConfirm: "Confirm",
+    defaultCancel: "Cancel",
+  },
 } as const;
 
 export default { translation } as const;

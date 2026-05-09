@@ -2,16 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Button } from "@/components/ui/button";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,7 +26,7 @@ import {
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { paginateItems } from "@/lib/pagination";
-import { deleteAdminUser, fetchAdminUsers, updateAdminUser, type AdminUser } from "../api";
+import { deleteAdminUser, fetchAdminUsers, getExportUsersURL, updateAdminUser, type AdminUser } from "../api";
 
 const ROLE_OPTIONS = ["user", "admin"] as const;
 const STATUS_OPTIONS = [
@@ -72,9 +63,9 @@ export function AdminUsersPage() {
   const currentUserId = useAuthStore((state) => state.user?.userId ?? null);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [usersPage, setUsersPage] = useState(1);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [formState, setFormState] = useState<UserEditForm>({
     username: "",
     email: "",
@@ -121,7 +112,6 @@ export function AdminUsersPage() {
       queryClient.setQueryData<AdminUser[]>(["admin-users"], (current) =>
         (current ?? []).filter((user) => user.id !== userId),
       );
-      setDeleteTarget(null);
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (error) => {
@@ -139,7 +129,23 @@ export function AdminUsersPage() {
 
   return (
     <WorkspacePage>
-      <WorkspacePanel description="查看账号状态、修改绑定信息，并支持管理员编辑或删除用户。" title="用户管理">
+      <WorkspacePanel
+        action={
+          <Button
+            onClick={() => {
+              const token = useAuthStore.getState().accessToken;
+              const url = `${getExportUsersURL()}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+              window.open(url, "_blank");
+            }}
+            size="sm"
+            variant="outline"
+          >
+            导出 CSV
+          </Button>
+        }
+        description="查看账号状态、修改绑定信息，并支持管理员编辑或删除用户。"
+        title="用户管理"
+      >
         {feedback ? (
           <div className="rounded-xl border border-border/60 bg-muted/10 px-4 py-3 text-sm">{feedback}</div>
         ) : null}
@@ -281,44 +287,7 @@ export function AdminUsersPage() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog
-          onOpenChange={(open) => {
-            if (!open) {
-              setDeleteTarget(null);
-            }
-          }}
-          open={deleteTarget !== null}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>删除用户？</AlertDialogTitle>
-              <AlertDialogDescription>
-                {deleteTarget
-                  ? `确认删除用户 ${deleteTarget.username}？如果该用户仍绑定邮箱、域名或服务商资源，后端会阻止这次删除。`
-                  : ""}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-3 text-sm">
-              <div className="font-medium">{deleteTarget?.username ?? "-"}</div>
-              <div className="mt-1 text-muted-foreground">{deleteTarget?.email ?? "-"}</div>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={deleteUserMutation.isPending}
-                onClick={() => {
-                  if (!deleteTarget) {
-                    return;
-                  }
-                  setFeedback(null);
-                  deleteUserMutation.mutate(deleteTarget.id);
-                }}
-              >
-                {deleteUserMutation.isPending ? "删除中..." : "确认删除"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {ConfirmDialog}
 
         <div className="grid gap-4 md:grid-cols-3">
           <WorkspaceMetric hint="后台可见全部账号" label="用户总数" value={users.length} />
@@ -346,7 +315,19 @@ export function AdminUsersPage() {
                       </Button>
                       <Button
                         disabled={isCurrentUser}
-                        onClick={() => setDeleteTarget(user)}
+                        onClick={async () => {
+                          const confirmed = await confirm({
+                            title: "删除用户？",
+                            description: `确认删除用户 ${user.username}？如果该用户仍绑定邮箱、域名或服务商资源，后端会阻止这次删除。`,
+                            confirmLabel: "确认删除",
+                            cancelLabel: "取消",
+                            variant: "danger",
+                          });
+                          if (confirmed) {
+                            setFeedback(null);
+                            deleteUserMutation.mutate(user.id);
+                          }
+                        }}
                         size="sm"
                         variant="destructive"
                       >

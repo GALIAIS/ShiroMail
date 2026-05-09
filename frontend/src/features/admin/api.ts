@@ -622,6 +622,7 @@ export async function fetchAdminApiKeys() {
 export async function createAdminApiKey(input: {
   name: string;
   scopes?: string[];
+  expiresAt?: string;
   resourcePolicy?: ApiKeyItem["resourcePolicy"];
   domainBindings?: ApiKeyDomainBindingInput[];
 }) {
@@ -991,6 +992,16 @@ export type AdminUserDetail = {
 export async function fetchAdminUserDetail(userId: number) {
   const { data } = await http.get<AdminUserDetail>(`/admin/users/${userId}/detail`);
   return data;
+}
+
+export function getExportUsersURL() {
+  const baseURL = http.defaults.baseURL ?? "/api/v1";
+  return `${baseURL}/admin/export/users`;
+}
+
+export function getExportStatsURL() {
+  const baseURL = http.defaults.baseURL ?? "/api/v1";
+  return `${baseURL}/admin/export/stats`;
 }
 
 function normalizeAdminApiKeyItem(item: ApiKeyItem): ApiKeyItem {

@@ -296,6 +296,7 @@ export type ApiKeyItem = {
   plainSecret?: string;
   status: string;
   scopes: string[];
+  expiresAt?: string;
   resourcePolicy: {
     domainAccessMode: string;
     allowPlatformPublicDomains: boolean;
@@ -759,6 +760,7 @@ export async function fetchApiKeys() {
 export async function createApiKey(input: {
   name: string;
   scopes?: string[];
+  expiresAt?: string;
   resourcePolicy?: ApiKeyItem["resourcePolicy"];
   domainBindings?: ApiKeyDomainBindingInput[];
 }) {

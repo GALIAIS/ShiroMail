@@ -90,6 +90,14 @@ const DEFAULT_RESOURCE_POLICY = {
 
 const ADMIN_API_KEYS_PAGE_SIZE = 8;
 
+const EXPIRATION_OPTIONS = [
+  { value: "", label: "永不过期" },
+  { value: "30", label: "30 天" },
+  { value: "90", label: "90 天" },
+  { value: "365", label: "1 年" },
+  { value: "custom", label: "自定义日期" },
+];
+
 type BindingDraft = {
   domainId: string;
   accessLevel: string;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -119,6 +120,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	var req struct {
 		Name           string                `json:"name"`
 		Scopes         []string              `json:"scopes"`
+		ExpiresAt      *time.Time            `json:"expiresAt"`
 		ResourcePolicy APIKeyResourcePolicy  `json:"resourcePolicy"`
 		DomainBindings []APIKeyDomainBinding `json:"domainBindings"`
 	}
@@ -129,6 +131,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	item, err := c.service.CreateAPIKey(ctx, userID, CreateAPIKeyInput{
 		Name:           req.Name,
 		Scopes:         req.Scopes,
+		ExpiresAt:      req.ExpiresAt,
 		ResourcePolicy: req.ResourcePolicy,
 		DomainBindings: req.DomainBindings,
 	})
