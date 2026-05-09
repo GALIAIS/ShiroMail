@@ -49,6 +49,7 @@ import {
 import { MailboxCreateForm } from "../components/mailbox-create-form";
 import { MailboxList } from "../components/mailbox-list";
 import { MailboxMessageDetail } from "../components/mailbox-message-detail";
+import { useMessageMutations } from "../hooks/use-message-mutations";
 
 type MessageViewMode = "text" | "html" | "raw";
 const RAW_PREVIEW_AUTOMATIC_LIMIT = 512 * 1024;
@@ -455,6 +456,12 @@ export function UserMailboxPage() {
     },
   });
 
+  const effectiveMessagesSearchForMutations = debouncedMessagesSearch.length >= 2 ? debouncedMessagesSearch : "";
+  const { batchDeleteMutation, batchMarkReadMutation } = useMessageMutations(
+    effectiveSelectedMailboxId,
+    effectiveMessagesSearchForMutations,
+  );
+
   return (
     <WorkspacePage>
       <AlertDialog open={releaseDialogOpen} onOpenChange={setReleaseDialogOpen}>
@@ -586,6 +593,9 @@ export function UserMailboxPage() {
           onFeedback={setFeedback}
           formatDate={formatDate}
           formatRemainingHours={formatRemainingHours}
+          onBatchDelete={(ids) => batchDeleteMutation.mutate(ids)}
+          onBatchMarkRead={(ids, read) => batchMarkReadMutation.mutate({ ids, read })}
+          isBatchPending={batchDeleteMutation.isPending || batchMarkReadMutation.isPending}
         />
       </div>
     </WorkspacePage>

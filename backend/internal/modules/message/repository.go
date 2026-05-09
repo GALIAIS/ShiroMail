@@ -15,6 +15,9 @@ type Repository interface {
 	SearchByMailboxID(ctx context.Context, mailboxID uint64, query string) ([]Message, error)
 	GetByMailboxAndID(ctx context.Context, mailboxID uint64, messageID uint64) (Message, error)
 	SoftDeleteByMailboxIDs(ctx context.Context, mailboxIDs []uint64) error
+	SoftDeleteByIDs(ctx context.Context, messageIDs []uint64) error
+	SetReadByIDs(ctx context.Context, messageIDs []uint64, read bool) error
+	MailboxIDsByMessageIDs(ctx context.Context, messageIDs []uint64) (map[uint64]uint64, error)
 	CountToday(ctx context.Context) int
 	CountDailyRange(ctx context.Context, days int) ([]DailyCount, error)
 	CountDailyRangeByUser(ctx context.Context, userID uint64, days int) ([]DailyCount, error)
@@ -66,6 +69,18 @@ func (r *MemoryRepository) CountDailyRangeByUser(_ context.Context, _ uint64, da
 
 func (r *MemoryRepository) CountUnreadByMailboxIDs(_ context.Context, _ []uint64) (map[uint64]int, error) {
 	return map[uint64]int{}, nil
+}
+
+func (r *MemoryRepository) SoftDeleteByIDs(_ context.Context, _ []uint64) error {
+	return nil
+}
+
+func (r *MemoryRepository) SetReadByIDs(_ context.Context, _ []uint64, _ bool) error {
+	return nil
+}
+
+func (r *MemoryRepository) MailboxIDsByMessageIDs(_ context.Context, _ []uint64) (map[uint64]uint64, error) {
+	return map[uint64]uint64{}, nil
 }
 
 func (r *MemoryRepository) RecentByUser(_ context.Context, _ uint64, _ int) ([]Summary, error) {

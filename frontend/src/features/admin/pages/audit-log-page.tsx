@@ -8,7 +8,6 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import {
   WorkspaceBadge,
   WorkspaceEmpty,
-  WorkspaceListRow,
   WorkspacePage,
   WorkspacePanel,
 } from "@/components/layout/workspace-ui";
@@ -96,26 +95,64 @@ export function AdminAuditLogPage() {
       >
         {items.length ? (
           <div className="space-y-3">
-            {items.map((item) => (
-              <WorkspaceListRow
-                key={item.id}
-                title={item.action}
-                description={`${item.resourceType} / ${item.resourceId}`}
-                meta={
-                  <>
-                    <WorkspaceBadge variant="outline">
-                      {item.resourceType}
-                    </WorkspaceBadge>
+            {/* Desktop table view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-2.5 font-medium">{t("audit.colAction")}</th>
+                    <th className="px-3 py-2.5 font-medium">{t("audit.colResource")}</th>
+                    <th className="px-3 py-2.5 font-medium">{t("audit.colActor")}</th>
+                    <th className="px-3 py-2.5 font-medium">{t("audit.colTime")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {items.map((item) => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2.5 font-medium">{item.action}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">
+                        <span>{item.resourceType}</span>
+                        <span className="mx-1 text-border">/</span>
+                        <span>{item.resourceId}</span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <WorkspaceBadge variant="secondary">
+                          actor #{item.actorUserId}
+                        </WorkspaceBadge>
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
+                        {formatDateTime(item.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="space-y-3 md:hidden">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-medium break-all">{item.action}</span>
                     <WorkspaceBadge variant="secondary">
                       actor #{item.actorUserId}
                     </WorkspaceBadge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {item.resourceType} / {item.resourceId}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <WorkspaceBadge variant="outline">{item.resourceType}</WorkspaceBadge>
                     <span>{formatDateTime(item.createdAt)}</span>
-                  </>
-                }
-                titleClassName="whitespace-normal"
-                descriptionClassName="whitespace-normal"
-              />
-            ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <PaginationControls
               itemLabel={t("audit.itemLabel")}
               page={page}

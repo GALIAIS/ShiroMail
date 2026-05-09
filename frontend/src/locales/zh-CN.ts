@@ -32,6 +32,7 @@ const translation = {
       user: "Mail workspace",
       admin: "Control plane",
     },
+    skipToContent: "跳转到主要内容",
   },
   nav: {
     public: {
@@ -389,6 +390,14 @@ const translation = {
     quickActionBindDomainBody: "新增根域名，批量生成多级子域名并投入使用。",
     quickActionCreateApiKeyTitle: "创建 API Key",
     quickActionCreateApiKeyBody: "为自动化脚本和外部系统生成新的访问密钥。",
+    quickCardCreateMailbox: "创建邮箱",
+    quickCardCreateMailboxHint: "快速创建临时收件箱。",
+    quickCardManageDns: "DNS 管理",
+    quickCardManageDnsHint: "配置域名 DNS 记录。",
+    quickCardApiKeys: "API 密钥",
+    quickCardApiKeysHint: "创建和管理访问密钥。",
+    quickCardWebhooks: "Webhooks",
+    quickCardWebhooksHint: "配置事件通知端点。",
     openFeedback: "未处理反馈",
     latestNotices: "最新公告",
     totalMailboxes: "邮箱总数",
@@ -468,6 +477,18 @@ const translation = {
     noResults: "没有匹配的消息",
     noResultsHint: "尝试换个关键词再搜索。",
   },
+  bulk: {
+    selectAll: "全选",
+    selected: "已选 {{count}} 条",
+    delete: "删除所选",
+    markRead: "标为已读",
+    markUnread: "标为未读",
+    deleteSuccess: "已删除 {{count}} 条消息",
+    markReadSuccess: "已标记 {{count}} 条为已读",
+    markUnreadSuccess: "已标记 {{count}} 条为未读",
+    deleteFailed: "批量删除失败，已回滚",
+    markReadFailed: "批量标记失败，已回滚",
+  },
   settings: {
     description: "更新展示名称、语言偏好与控制台刷新频率。",
     loginUsername: "登录账号",
@@ -510,6 +531,10 @@ const translation = {
     itemLabel: "审计记录",
     emptyTitle: "暂无审计记录",
     emptyDescription: "当前没有符合筛选条件的审计日志。",
+    colAction: "操作",
+    colResource: "资源",
+    colActor: "操作人",
+    colTime: "时间",
   },
 } as const;
 

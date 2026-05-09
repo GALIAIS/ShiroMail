@@ -322,3 +322,70 @@ func currentAPIKeyArgs(ctx *gin.Context) []portal.APIKey {
 	}
 	return []portal.APIKey{apiKey}
 }
+
+type BatchDeleteRequest struct {
+	IDs []uint64 `json:"ids" binding:"required"`
+}
+
+type BatchReadRequest struct {
+	IDs  []uint64 `json:"ids" binding:"required"`
+	Read bool     `json:"read"`
+}
+
+func (c *Controller) BatchDelete(ctx *gin.Context) {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
+	var req BatchDeleteRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "ids required"})
+		return
+	}
+	if len(req.IDs) > 100 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "too many ids (max 100)"})
+		return
+	}
+
+	if err := c.service.BatchDeleteMessages(ctx, userID, req.IDs); err != nil {
+		if err.Error() == "message does not belong to user" || err.Error() == "one or more messages not found" {
+			ctx.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "batch delete failed"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (c *Controller) BatchRead(ctx *gin.Context) {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
+	var req BatchReadRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "ids required"})
+		return
+	}
+	if len(req.IDs) > 100 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "too many ids (max 100)"})
+		return
+	}
+
+	if err := c.service.BatchSetReadMessages(ctx, userID, req.IDs, req.Read); err != nil {
+		if err.Error() == "message does not belong to user" || err.Error() == "one or more messages not found" {
+			ctx.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "batch read update failed"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"ok": true})
+}

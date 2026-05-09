@@ -22,6 +22,7 @@ import {
   Mail,
   MailPlus,
   MessageSquareText,
+  Network,
   Sparkles,
   TrendingUp,
   Webhook,
@@ -132,6 +133,52 @@ export function UserDashboardPage() {
           ))}
         </div>
       </WorkspacePanel>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          {
+            title: t("dashboard.quickCardCreateMailbox"),
+            description: t("dashboard.quickCardCreateMailboxHint"),
+            to: "/dashboard/mailboxes",
+            icon: MailPlus,
+          },
+          {
+            title: t("dashboard.quickCardManageDns"),
+            description: t("dashboard.quickCardManageDnsHint"),
+            to: "/dashboard/dns",
+            icon: Network,
+          },
+          {
+            title: t("dashboard.quickCardApiKeys"),
+            description: t("dashboard.quickCardApiKeysHint"),
+            to: "/dashboard/api-keys",
+            icon: KeyRound,
+          },
+          {
+            title: t("dashboard.quickCardWebhooks"),
+            description: t("dashboard.quickCardWebhooksHint"),
+            to: "/dashboard/webhooks",
+            icon: Webhook,
+          },
+        ].map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={card.to}
+              to={card.to}
+              className="group flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-border hover:bg-accent/40"
+            >
+              <div className="flex size-10 items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-muted-foreground transition-colors group-hover:text-foreground">
+                <Icon className="size-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">{card.title}</div>
+                <p className="text-xs leading-5 text-muted-foreground">{card.description}</p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
 
       <OnboardingGuide
         hasDomains={ownedDomains.length > 0}

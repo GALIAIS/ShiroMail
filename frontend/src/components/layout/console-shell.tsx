@@ -95,6 +95,12 @@ export function ConsoleShell({
 
   return (
     <SidebarProvider defaultOpen>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-3 focus:bg-background focus:text-foreground focus:rounded-md focus:shadow-lg"
+      >
+        {t("console.skipToContent")}
+      </a>
       <Sidebar
         className="border-r border-sidebar-border bg-sidebar"
         collapsible="icon"
@@ -245,7 +251,7 @@ export function ConsoleShell({
             </div>
           </header>
 
-          <div className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div id="main-content" className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </div>

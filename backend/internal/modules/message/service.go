@@ -170,6 +170,56 @@ func (s *Service) ListByMailboxForAdmin(ctx context.Context, mailboxID uint64) (
 	return s.listSummaries(ctx, mailboxID, "")
 }
 
+func (s *Service) BatchDeleteMessages(ctx context.Context, userID uint64, messageIDs []uint64) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+	if err := s.verifyMessageOwnership(ctx, userID, messageIDs); err != nil {
+		return err
+	}
+	return s.repo.SoftDeleteByIDs(ctx, messageIDs)
+}
+
+func (s *Service) BatchSetReadMessages(ctx context.Context, userID uint64, messageIDs []uint64, read bool) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+	if err := s.verifyMessageOwnership(ctx, userID, messageIDs); err != nil {
+		return err
+	}
+	return s.repo.SetReadByIDs(ctx, messageIDs, read)
+}
+
+func (s *Service) verifyMessageOwnership(ctx context.Context, userID uint64, messageIDs []uint64) error {
+	userMailboxes, err := s.mailboxRepo.ListByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	allowedMailboxIDs := make(map[uint64]bool, len(userMailboxes))
+	for _, item := range userMailboxes {
+		allowedMailboxIDs[item.ID] = true
+	}
+
+	uniqueIDs := make(map[uint64]struct{}, len(messageIDs))
+	for _, id := range messageIDs {
+		uniqueIDs[id] = struct{}{}
+	}
+
+	mailboxIDsForMessages, err := s.repo.MailboxIDsByMessageIDs(ctx, messageIDs)
+	if err != nil {
+		return err
+	}
+	if len(mailboxIDsForMessages) != len(uniqueIDs) {
+		return errors.New("one or more messages not found")
+	}
+	for _, mailboxID := range mailboxIDsForMessages {
+		if !allowedMailboxIDs[mailboxID] {
+			return errors.New("message does not belong to user")
+		}
+	}
+	return nil
+}
+
 func (s *Service) GetByMailboxAndIDForAdmin(ctx context.Context, mailboxID uint64, messageID uint64) (Message, error) {
 	if _, err := s.mailboxRepo.FindByID(ctx, mailboxID); err != nil {
 		return Message{}, err

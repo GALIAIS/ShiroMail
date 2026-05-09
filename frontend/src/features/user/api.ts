@@ -725,6 +725,16 @@ export async function releaseMailbox(mailboxId: number) {
   return data;
 }
 
+export async function batchDeleteMessages(ids: number[]) {
+  const { data } = await http.post<{ ok: boolean }>("/messages/batch-delete", { ids });
+  return data;
+}
+
+export async function batchMarkRead(ids: number[], read: boolean) {
+  const { data } = await http.post<{ ok: boolean }>("/messages/batch-read", { ids, read });
+  return data;
+}
+
 export async function fetchNotices() {
   const { data } = await http.get<{ items: NoticeItem[] }>("/portal/notices");
   return data.items;

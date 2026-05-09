@@ -290,6 +290,48 @@ func (r *MySQLRepository) SoftDeleteByMailboxIDs(ctx context.Context, mailboxIDs
 		Update("is_deleted", true).Error
 }
 
+func (r *MySQLRepository) SoftDeleteByIDs(ctx context.Context, messageIDs []uint64) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&database.MessageRow{}).
+		Where("id IN ?", messageIDs).
+		Update("is_deleted", true).Error
+}
+
+func (r *MySQLRepository) SetReadByIDs(ctx context.Context, messageIDs []uint64, read bool) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&database.MessageRow{}).
+		Where("id IN ?", messageIDs).
+		Update("is_read", read).Error
+}
+
+func (r *MySQLRepository) MailboxIDsByMessageIDs(ctx context.Context, messageIDs []uint64) (map[uint64]uint64, error) {
+	if len(messageIDs) == 0 {
+		return map[uint64]uint64{}, nil
+	}
+
+	var rows []database.MessageRow
+	if err := r.db.WithContext(ctx).
+		Select("id, mailbox_id").
+		Where("id IN ?", messageIDs).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	result := make(map[uint64]uint64, len(rows))
+	for _, row := range rows {
+		result[row.ID] = row.MailboxID
+	}
+	return result, nil
+}
+
 func (r *MySQLRepository) CountToday(ctx context.Context) int {
 	now := time.Now()
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())

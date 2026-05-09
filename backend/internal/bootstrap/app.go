@@ -566,6 +566,8 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	api.GET("/mailboxes/:mailboxId/messages/:id/raw/parsed", apiKeyGuard, middleware.RequireAPIScope("messages.read"), messageController.ParsedRaw)
 	api.GET("/mailboxes/:mailboxId/messages/:id/attachments/:index", apiKeyGuard, middleware.RequireAPIScope("messages.attachments.read"), messageController.Attachment)
 	api.POST("/mailboxes/:mailboxId/messages/receive", apiKeyGuard, middleware.RequireAPIScope("messages.write"), messageController.Receive)
+	api.POST("/messages/batch-delete", authGuard, messageController.BatchDelete)
+	api.POST("/messages/batch-read", authGuard, messageController.BatchRead)
 	api.GET("/portal/overview", authGuard, portalController.Overview)
 	api.GET("/portal/notices", authGuard, portalController.ListNotices)
 	api.GET("/portal/feedback", authGuard, portalController.ListFeedback)

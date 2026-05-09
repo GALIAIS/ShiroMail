@@ -32,6 +32,7 @@ const translation = {
       user: "Mail workspace",
       admin: "Control plane",
     },
+    skipToContent: "Skip to main content",
   },
   nav: {
     public: {
@@ -408,6 +409,14 @@ const translation = {
     quickActionCreateApiKeyTitle: "Create API key",
     quickActionCreateApiKeyBody:
       "Generate a new access key for automation and external systems.",
+    quickCardCreateMailbox: "Create Mailbox",
+    quickCardCreateMailboxHint: "Set up a new temporary inbox in seconds.",
+    quickCardManageDns: "Manage DNS",
+    quickCardManageDnsHint: "Configure DNS records for your domains.",
+    quickCardApiKeys: "API Keys",
+    quickCardApiKeysHint: "Create and manage access keys.",
+    quickCardWebhooks: "Webhooks",
+    quickCardWebhooksHint: "Set up event notification endpoints.",
     openFeedback: "Open feedback",
     latestNotices: "Latest notices",
     totalMailboxes: "Mailbox total",
@@ -489,6 +498,18 @@ const translation = {
     noResults: "No matching messages",
     noResultsHint: "Try a different keyword.",
   },
+  bulk: {
+    selectAll: "Select all",
+    selected: "{{count}} selected",
+    delete: "Delete selected",
+    markRead: "Mark as read",
+    markUnread: "Mark as unread",
+    deleteSuccess: "Deleted {{count}} messages",
+    markReadSuccess: "Marked {{count}} messages as read",
+    markUnreadSuccess: "Marked {{count}} messages as unread",
+    deleteFailed: "Batch delete failed, rolled back",
+    markReadFailed: "Batch mark failed, rolled back",
+  },
   settings: {
     description:
       "Update the display name, language preference, and refresh cadence for the console.",
@@ -533,6 +554,10 @@ const translation = {
     itemLabel: "audit entries",
     emptyTitle: "No audit records",
     emptyDescription: "No audit logs match the current filter.",
+    colAction: "Action",
+    colResource: "Resource",
+    colActor: "Actor",
+    colTime: "Time",
   },
 } as const;
 

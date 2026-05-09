@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   WorkspaceEmpty,
@@ -8,6 +9,8 @@ import {
 } from "@/components/layout/workspace-ui";
 import { decodeMimeHeaderValue } from "@/lib/mail-header";
 import {
+  BookOpen,
+  BookX,
   Clock3,
   Download,
   Inbox,
@@ -16,7 +19,8 @@ import {
   TimerReset,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   MailboxItem,
   MailboxMessage,
@@ -66,6 +70,9 @@ type Props = {
   onFeedback: (msg: string | null) => void;
   formatDate: (value: string) => string;
   formatRemainingHours: (value: string) => string;
+  onBatchDelete?: (ids: number[]) => void;
+  onBatchMarkRead?: (ids: number[], read: boolean) => void;
+  isBatchPending?: boolean;
 };
 
 export function MailboxMessageDetail({
@@ -104,8 +111,50 @@ export function MailboxMessageDetail({
   onFeedback,
   formatDate,
   formatRemainingHours,
+  onBatchDelete,
+  onBatchMarkRead,
+  isBatchPending,
 }: Props) {
   const [headersExpanded, setHeadersExpanded] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const toggleMessageSelection = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === messages.length) {
+        return new Set();
+      }
+      return new Set(messages.map((m) => m.id));
+    });
+  }, [messages]);
+
+  const handleBatchDelete = useCallback(() => {
+    if (!onBatchDelete || selectedIds.size === 0) return;
+    onBatchDelete(Array.from(selectedIds));
+    clearSelection();
+  }, [onBatchDelete, selectedIds, clearSelection]);
+
+  const handleBatchMarkRead = useCallback(
+    (read: boolean) => {
+      if (!onBatchMarkRead || selectedIds.size === 0) return;
+      onBatchMarkRead(Array.from(selectedIds), read);
+      clearSelection();
+    },
+    [onBatchMarkRead, selectedIds, clearSelection],
+  );
 
   return (
     <WorkspacePanel
@@ -134,6 +183,12 @@ export function MailboxMessageDetail({
             searchPlaceholder={messagesSearchPlaceholder}
             noResultsTitle={messagesNoResultsTitle}
             noResultsHint={messagesNoResultsHint}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleMessageSelection}
+            onToggleSelectAll={toggleSelectAll}
+            onBatchDelete={handleBatchDelete}
+            onBatchMarkRead={handleBatchMarkRead}
+            isBatchPending={isBatchPending}
           />
           {selectedMessageSummary ? (
             <Card className="border-border/60 bg-muted/10 shadow-none">
@@ -264,6 +319,12 @@ function MessageList({
   searchPlaceholder,
   noResultsTitle,
   noResultsHint,
+  selectedIds,
+  onToggleSelection,
+  onToggleSelectAll,
+  onBatchDelete,
+  onBatchMarkRead,
+  isBatchPending,
 }: {
   messages: MailboxMessageSummary[];
   effectiveSelectedMessageId: number | null;
@@ -276,7 +337,16 @@ function MessageList({
   searchPlaceholder: string;
   noResultsTitle: string;
   noResultsHint: string;
+  selectedIds: Set<number>;
+  onToggleSelection: (id: number) => void;
+  onToggleSelectAll: () => void;
+  onBatchDelete: () => void;
+  onBatchMarkRead: (read: boolean) => void;
+  isBatchPending?: boolean;
 }) {
+  const { t } = useTranslation();
+  const allSelected = messages.length > 0 && selectedIds.size === messages.length;
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -288,6 +358,48 @@ function MessageList({
           value={searchQuery}
         />
       </div>
+      {messages.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={allSelected}
+            onCheckedChange={onToggleSelectAll}
+            aria-label={t("bulk.selectAll")}
+          />
+          <span className="text-xs text-muted-foreground">{t("bulk.selectAll")}</span>
+        </div>
+      )}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+          <span className="text-xs font-medium">{t("bulk.selected", { count: selectedIds.size })}</span>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={onBatchDelete}
+            disabled={isBatchPending}
+          >
+            <Trash2 className="mr-1 size-3.5" />
+            {t("bulk.delete")}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onBatchMarkRead(true)}
+            disabled={isBatchPending}
+          >
+            <BookOpen className="mr-1 size-3.5" />
+            {t("bulk.markRead")}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onBatchMarkRead(false)}
+            disabled={isBatchPending}
+          >
+            <BookX className="mr-1 size-3.5" />
+            {t("bulk.markUnread")}
+          </Button>
+        </div>
+      )}
       {isLoading ? (
         <WorkspaceEmpty description="正在同步消息列表，请稍候。" title="正在加载消息" />
       ) : !messages.length && hasActiveSearch ? (
@@ -297,32 +409,46 @@ function MessageList({
       ) : (
         messages.map((message) => {
           const active = message.id === effectiveSelectedMessageId;
+          const checked = selectedIds.has(message.id);
           return (
-            <button className="block w-full text-left" key={message.id} onClick={() => onSelectMessage(message.id)} type="button">
-              <Card className={active ? "border-primary/40 bg-muted/20 shadow-none" : "border-border/60 bg-muted/10 shadow-none"}>
-                <CardContent className="space-y-3 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">
-                        {message.subject ? `主题 · ${decodeMimeHeaderValue(message.subject)}` : "(无主题)"}
+            <div className="flex items-start gap-2" key={message.id}>
+              <Checkbox
+                className="mt-5 shrink-0"
+                checked={checked}
+                onCheckedChange={() => onToggleSelection(message.id)}
+                aria-label={`Select message ${message.id}`}
+              />
+              <button className="block w-full min-w-0 text-left" onClick={() => onSelectMessage(message.id)} type="button">
+                <Card className={active ? "border-primary/40 bg-muted/20 shadow-none" : "border-border/60 bg-muted/10 shadow-none"}>
+                  <CardContent className="space-y-3 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className={`text-sm font-medium ${message.isRead ? "" : "font-semibold"}`}>
+                          {message.subject ? `主题 · ${decodeMimeHeaderValue(message.subject)}` : "(无主题)"}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{decodeMimeHeaderValue(message.fromAddr)}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{decodeMimeHeaderValue(message.fromAddr)}</p>
+                      <div className="flex items-center gap-2">
+                        {!message.isRead && (
+                          <span className="size-2 rounded-full bg-primary" title="未读" />
+                        )}
+                        <span className="text-xs text-muted-foreground">{formatDate(message.receivedAt)}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatDate(message.receivedAt)}</span>
-                  </div>
-                  <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-                    {message.textPreview || message.htmlPreview || "暂无预览内容"}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Inbox className="size-3.5" />
-                      {decodeMimeHeaderValue(message.toAddr)}
-                    </span>
-                    <span>{message.attachmentCount} 个附件</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
+                    <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      {message.textPreview || message.htmlPreview || "暂无预览内容"}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Inbox className="size-3.5" />
+                        {decodeMimeHeaderValue(message.toAddr)}
+                      </span>
+                      <span>{message.attachmentCount} 个附件</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </button>
+            </div>
           );
         })
       )}
