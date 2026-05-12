@@ -61,6 +61,14 @@ type APIKey struct {
 	RotatedAt      *time.Time            `json:"rotatedAt,omitempty"`
 }
 
+// Supported webhook event types.
+var SupportedWebhookEvents = []string{
+	"new_message",
+	"message_read",
+	"message_deleted",
+	"mailbox_created",
+}
+
 type Webhook struct {
 	ID              uint64     `json:"id"`
 	UserID          uint64     `json:"userId"`

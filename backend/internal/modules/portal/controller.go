@@ -185,6 +185,10 @@ func (c *Controller) ListWebhooks(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
 }
 
+func (c *Controller) ListWebhookEventTypes(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"items": SupportedWebhookEvents})
+}
+
 func (c *Controller) CreateWebhook(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {

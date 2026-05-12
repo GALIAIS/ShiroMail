@@ -303,6 +303,10 @@ func signPayload(body []byte, secret string) string {
 }
 
 func matchesEvent(subscribed []string, event string) bool {
+	// Empty list means "all events" (backward compatible)
+	if len(subscribed) == 0 {
+		return true
+	}
 	for _, e := range subscribed {
 		if e == "*" || e == event {
 			return true

@@ -50,8 +50,6 @@ const SUPPORTED_EVENTS = [
   "mailbox_created",
 ] as const;
 
-type SupportedEvent = (typeof SUPPORTED_EVENTS)[number];
-
 export function UserWebhooksPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();

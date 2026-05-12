@@ -642,6 +642,7 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 	api.POST("/portal/api-keys/:id/rotate", authGuard, portalController.RotateAPIKey)
 	api.POST("/portal/api-keys/:id/revoke", authGuard, portalController.RevokeAPIKey)
 	api.GET("/portal/webhooks", authGuard, portalController.ListWebhooks)
+	api.GET("/portal/webhooks/event-types", authGuard, portalController.ListWebhookEventTypes)
 	api.POST("/portal/webhooks", authGuard, portalController.CreateWebhook)
 	api.PUT("/portal/webhooks/:id", authGuard, portalController.UpdateWebhook)
 	api.POST("/portal/webhooks/:id/toggle", authGuard, portalController.ToggleWebhook)

@@ -398,7 +398,7 @@ func (s *Service) ensureUserDefaults(ctx context.Context, user auth.User) error 
 
 func sanitizeEvents(items []string) []string {
 	if len(items) == 0 {
-		return []string{"message.received"}
+		return SupportedWebhookEvents
 	}
 	output := make([]string, 0, len(items))
 	seen := map[string]struct{}{}
@@ -410,11 +410,15 @@ func sanitizeEvents(items []string) []string {
 		if _, ok := seen[trimmed]; ok {
 			continue
 		}
+		// Allow wildcard or any recognized event type
+		if trimmed != "*" && !slices.Contains(SupportedWebhookEvents, trimmed) {
+			continue
+		}
 		seen[trimmed] = struct{}{}
 		output = append(output, trimmed)
 	}
 	if len(output) == 0 {
-		return []string{"message.received"}
+		return SupportedWebhookEvents
 	}
 	return output
 }

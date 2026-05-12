@@ -4,6 +4,7 @@ import {
   Globe,
   KeyRound,
   Mail,
+  Quote,
   Sparkles,
   Webhook,
 } from "lucide-react";
@@ -366,6 +367,53 @@ export function LandingPage() {
           </div>
         </PublicInfoCard>
       </div>
+
+      <PublicSection
+        description={t("landing.sections.testimonialsDescription")}
+        eyebrow={t("landing.sections.testimonialsEyebrow")}
+        title={t("landing.sections.testimonialsTitle")}
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              initials: t("landing.testimonials.person1Initials"),
+              name: t("landing.testimonials.person1Name"),
+              role: t("landing.testimonials.person1Role"),
+              quote: t("landing.testimonials.person1Quote"),
+            },
+            {
+              initials: t("landing.testimonials.person2Initials"),
+              name: t("landing.testimonials.person2Name"),
+              role: t("landing.testimonials.person2Role"),
+              quote: t("landing.testimonials.person2Quote"),
+            },
+            {
+              initials: t("landing.testimonials.person3Initials"),
+              name: t("landing.testimonials.person3Name"),
+              role: t("landing.testimonials.person3Role"),
+              quote: t("landing.testimonials.person3Quote"),
+            },
+          ].map((item) => (
+            <Card className="border-border/60 bg-card shadow-none" key={item.name}>
+              <CardContent className="space-y-4 py-5">
+                <Quote className="size-5 text-muted-foreground/40" />
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {item.quote}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {item.initials}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{item.name}</div>
+                    <div className="text-xs text-muted-foreground">{item.role}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </PublicSection>
 
       <PublicSection
         description={t("landing.sections.faqDescription")}
