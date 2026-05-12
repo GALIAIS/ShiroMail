@@ -8,6 +8,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 
 	"shiro-email/backend/internal/database"
 )
@@ -56,7 +57,8 @@ func (r *MySQLSpoolRepository) ClaimNext(ctx context.Context) (SpoolItem, error)
 	var claimed database.InboundMessageSpoolRow
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var row database.InboundMessageSpoolRow
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := tx.Session(&gorm.Session{Logger: tx.Logger.LogMode(logger.Silent)}).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("status = ? AND next_attempt_at <= ?", SpoolStatusPending, time.Now().UTC()).
 			Order("id ASC").
 			Limit(1).
