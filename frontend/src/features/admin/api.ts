@@ -41,6 +41,7 @@ export type AdminMailbox = {
   address: string;
   ownerUsername: string;
   status: string;
+  permanent: boolean;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;

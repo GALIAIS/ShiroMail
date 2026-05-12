@@ -55,6 +55,7 @@ describe("AdminExtractorTemplatesPage", () => {
         address: "ops@example.test",
         ownerUsername: "admin",
         status: "active",
+        permanent: false,
         expiresAt: "2026-04-07T10:00:00Z",
         createdAt: "2026-04-07T09:00:00Z",
         updatedAt: "2026-04-07T09:30:00Z",

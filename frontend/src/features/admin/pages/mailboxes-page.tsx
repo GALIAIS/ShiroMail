@@ -691,7 +691,7 @@ export function AdminMailboxesPage() {
                             <WorkspaceBadge>{mailbox.status === "active" ? "活跃" : mailbox.status}</WorkspaceBadge>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span>剩余 {formatRemainingHours(mailbox.expiresAt)}</span>
+                            <span>{mailbox.permanent ? "永久邮箱" : `剩余 ${formatRemainingHours(mailbox.expiresAt)}`}</span>
                             <span>更新于 {formatDate(mailbox.updatedAt)}</span>
                           </div>
                         </CardContent>
@@ -713,7 +713,7 @@ export function AdminMailboxesPage() {
         </div>
 
         <WorkspacePanel
-          description={selectedMailbox ? `归属 ${selectedMailbox.ownerUsername} · 到期 ${formatDate(selectedMailbox.expiresAt)}` : "先从左侧选择一个邮箱。"}
+          description={selectedMailbox ? (selectedMailbox.permanent ? `归属 ${selectedMailbox.ownerUsername} · 永久邮箱` : `归属 ${selectedMailbox.ownerUsername} · 到期 ${formatDate(selectedMailbox.expiresAt)}`) : "先从左侧选择一个邮箱。"}
           title={selectedMailbox?.address ?? "消息预览"}
         >
           {selectedMailbox ? (
@@ -746,7 +746,7 @@ export function AdminMailboxesPage() {
                 </Badge>
                 <Badge className="rounded-full" variant="outline">
                   <Clock3 className="mr-1 size-3.5" />
-                  剩余 {formatRemainingHours(selectedMailbox.expiresAt)}
+                  {selectedMailbox.permanent ? "永久" : `剩余 ${formatRemainingHours(selectedMailbox.expiresAt)}`}
                 </Badge>
                 <Badge className="rounded-full" variant={selectedMailbox.status === "active" ? "secondary" : "outline"}>
                   <ShieldCheck className="mr-1 size-3.5" />

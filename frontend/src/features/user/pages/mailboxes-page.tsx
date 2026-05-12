@@ -70,7 +70,11 @@ function formatDate(value: string) {
 }
 
 function formatRemainingHours(value: string) {
-  const diff = new Date(value).getTime() - Date.now();
+  const target = new Date(value).getTime();
+  if (target > Date.now() + 1000 * 60 * 60 * 24 * 365 * 50) {
+    return "永久";
+  }
+  const diff = target - Date.now();
   const hours = Math.max(0, Math.ceil(diff / (1000 * 60 * 60)));
   return `${hours} 小时`;
 }

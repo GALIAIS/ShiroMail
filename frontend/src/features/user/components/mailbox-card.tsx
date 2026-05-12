@@ -54,7 +54,7 @@ export function MailboxCard({ mailbox, active, onSelect, formatDate, formatRemai
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>剩余 {formatRemainingHours(mailbox.expiresAt)}</span>
+            <span>{mailbox.permanent ? "永久邮箱" : `剩余 ${formatRemainingHours(mailbox.expiresAt)}`}</span>
             <span>更新于 {formatDate(mailbox.updatedAt)}</span>
           </div>
         </CardContent>

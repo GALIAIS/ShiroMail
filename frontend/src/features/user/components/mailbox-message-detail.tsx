@@ -162,7 +162,7 @@ export function MailboxMessageDetail({
   return (
     <WorkspacePanel
       className="xl:sticky xl:top-20"
-      description={selectedMailbox ? `到期时间 ${formatDate(selectedMailbox.expiresAt)}` : "先从左侧选择一个邮箱。"}
+      description={selectedMailbox ? (selectedMailbox.permanent ? "永久邮箱" : `到期时间 ${formatDate(selectedMailbox.expiresAt)}`) : "先从左侧选择一个邮箱。"}
       title={selectedMailbox?.address ?? "消息预览"}
     >
       {selectedMailbox ? (
@@ -306,7 +306,7 @@ function MailboxActions({
       </Button>
       <Badge className="rounded-full" variant="outline">
         <Clock3 className="mr-1 size-3.5" />
-        剩余 {formatRemainingHours(selectedMailbox.expiresAt)}
+        {selectedMailbox.permanent ? "永久" : `剩余 ${formatRemainingHours(selectedMailbox.expiresAt)}`}
       </Badge>
       <Badge className="rounded-full" variant={selectedMailbox.status === "active" ? "secondary" : "outline"}>
         <ShieldCheck className="mr-1 size-3.5" />
