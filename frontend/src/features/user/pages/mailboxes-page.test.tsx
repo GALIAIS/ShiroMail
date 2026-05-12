@@ -60,12 +60,16 @@ describe("UserMailboxPage", () => {
           localPart: "alpha",
           address: "alpha@example.test",
           status: "active",
+          permanent: false,
           expiresAt: "2026-04-03T10:00:00Z",
           retentionDays: 0,
+          forwardTo: "",
+          forwardKeepCopy: false,
           createdAt: "2026-04-02T10:00:00Z",
           updatedAt: "2026-04-02T10:00:00Z",
         },
       ],
+      unreadCounts: {},
     });
 
     vi.mocked(fetchMailboxMessages).mockResolvedValue([
@@ -146,7 +150,11 @@ describe("UserMailboxPage", () => {
       localPart: "beta",
       address: "beta@example.test",
       status: "active",
+      permanent: false,
       expiresAt: "2026-04-03T10:00:00Z",
+      retentionDays: 0,
+      forwardTo: "",
+      forwardKeepCopy: false,
       createdAt: "2026-04-02T10:00:00Z",
       updatedAt: "2026-04-02T10:00:00Z",
     });
@@ -158,7 +166,11 @@ describe("UserMailboxPage", () => {
       localPart: "alpha",
       address: "alpha@example.test",
       status: "active",
+      permanent: false,
       expiresAt: "2026-04-04T10:00:00Z",
+      retentionDays: 0,
+      forwardTo: "",
+      forwardKeepCopy: false,
       createdAt: "2026-04-02T10:00:00Z",
       updatedAt: "2026-04-02T10:00:00Z",
     });
@@ -170,7 +182,11 @@ describe("UserMailboxPage", () => {
       localPart: "alpha",
       address: "alpha@example.test",
       status: "released",
+      permanent: false,
       expiresAt: "2026-04-03T10:00:00Z",
+      retentionDays: 0,
+      forwardTo: "",
+      forwardKeepCopy: false,
       createdAt: "2026-04-02T10:00:00Z",
       updatedAt: "2026-04-02T10:00:00Z",
     });
@@ -313,6 +329,7 @@ describe("UserMailboxPage", () => {
         },
       ],
       mailboxes: [],
+      unreadCounts: {},
     });
     vi.mocked(fetchMailboxMessages).mockResolvedValueOnce([]);
 

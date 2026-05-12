@@ -104,11 +104,16 @@ describe("UserExtractorRulesPage", () => {
           localPart: "alpha",
           address: "alpha@example.test",
           status: "active",
+          permanent: false,
           expiresAt: "2026-04-07T10:00:00Z",
+          retentionDays: 0,
+          forwardTo: "",
+          forwardKeepCopy: false,
           createdAt: "2026-04-07T09:00:00Z",
           updatedAt: "2026-04-07T09:30:00Z",
         },
       ],
+      unreadCounts: {},
     });
     vi.mocked(fetchMailboxMessages).mockResolvedValue([
       {
