@@ -684,6 +684,10 @@ const translation = {
   dns: {
     autoRefreshing: "自动刷新中...",
     copied: "已复制！",
+    healthScore: {
+      title: "域名健康度",
+      score: "{{configured}}/{{total}} 条记录已配置",
+    },
     verifyWizard: {
       title: "DNS 配置向导",
       description: "按照以下步骤为你的域名配置 DNS 记录。",

@@ -456,4 +456,23 @@
   .brand-backdrop::after {
     animation: none !important;
   }
+
+  .page-transition-fade {
+    animation: none !important;
+  }
+}
+
+@keyframes pageEnterFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition-fade {
+  animation: pageEnterFade 180ms ease-out both;
 }

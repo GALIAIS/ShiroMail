@@ -707,6 +707,10 @@ const translation = {
   dns: {
     autoRefreshing: "Auto-refreshing...",
     copied: "Copied!",
+    healthScore: {
+      title: "Domain Health",
+      score: "{{configured}}/{{total}} records configured",
+    },
     verifyWizard: {
       title: "DNS Setup Guide",
       description: "Follow these steps to configure DNS records for your domain.",

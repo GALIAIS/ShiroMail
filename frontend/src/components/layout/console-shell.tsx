@@ -263,7 +263,7 @@ export function ConsoleShell({
             </div>
           </header>
 
-          <div id="main-content" className="mx-auto flex max-w-[1360px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div key={location.pathname} id="main-content" className="page-transition-fade mx-auto flex max-w-[1360px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { ChevronDown, ChevronRight, ChevronUp, Copy, RefreshCcw, Trash2 } from "lucide-react";
 import i18n from "@/lib/i18n";
 import { DnsVerifyWizard } from "../components/dns-verify-wizard";
+import { DomainHealthScore } from "../components/domain-health-score";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2122,6 +2123,8 @@ export function UserDnsPage() {
                                                     )
                                                   ) : null}
                                                 </div>
+
+                                                <DomainHealthScore verifications={activeZoneWorkspace.verifications} />
 
                                                 <div className="grid gap-3 lg:grid-cols-2">
                                                   <div className="space-y-2 rounded-xl border border-border/60 bg-card/50 p-3">
