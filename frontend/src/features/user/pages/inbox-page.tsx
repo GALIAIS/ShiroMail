@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +17,16 @@ import { decodeMimeHeaderValue } from "@/lib/mail-header";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   ArrowLeft,
+  Download,
   Inbox,
   Paperclip,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
 import {
+  downloadMailboxMessageRaw,
   fetchDashboard,
   fetchMailboxMessageAttachmentBlob,
   fetchMailboxMessageDetail,
@@ -263,31 +266,13 @@ export function InboxPage() {
                 />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              {messagesQuery.isLoading ? (
-                <div className="p-4">
-                  <WorkspaceEmpty description={t("inbox.loading")} title="" />
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="p-4">
-                  <WorkspaceEmpty
-                    description={effectiveSearch ? t("inbox.noSearchResults") : t("inbox.emptyInbox")}
-                    title={effectiveSearch ? t("inbox.noResultsTitle") : t("inbox.emptyTitle")}
-                  />
-                </div>
-              ) : (
-                <div className="divide-y divide-border/40">
-                  {messages.map((msg) => (
-                    <MessageListItem
-                      key={msg.id}
-                      message={msg}
-                      active={msg.id === effectiveMessageId}
-                      onSelect={handleSelectMessage}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <VirtualizedMessageList
+              messages={messages}
+              isLoading={messagesQuery.isLoading}
+              effectiveMessageId={effectiveMessageId}
+              effectiveSearch={effectiveSearch}
+              onSelect={handleSelectMessage}
+            />
           </div>
 
           {/* Detail panel */}
@@ -343,6 +328,78 @@ export function InboxPage() {
         </div>
       </div>
     </WorkspacePage>
+  );
+}
+
+function VirtualizedMessageList({
+  messages,
+  isLoading,
+  effectiveMessageId,
+  effectiveSearch,
+  onSelect,
+}: {
+  messages: MailboxMessageSummary[];
+  isLoading: boolean;
+  effectiveMessageId: number | null;
+  effectiveSearch: string;
+  onSelect: (id: number) => void;
+}) {
+  const { t } = useTranslation();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 5,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-4">
+        <WorkspaceEmpty description={t("inbox.loading")} title="" />
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 p-4">
+        <WorkspaceEmpty
+          description={effectiveSearch ? t("inbox.noSearchResults") : t("inbox.emptyInbox")}
+          title={effectiveSearch ? t("inbox.noResultsTitle") : t("inbox.emptyTitle")}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div ref={parentRef} className="flex-1 overflow-y-auto">
+      <div
+        className="relative w-full"
+        style={{ height: `${virtualizer.getTotalSize()}px` }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const msg = messages[virtualRow.index];
+          return (
+            <div
+              key={msg.id}
+              className="absolute left-0 top-0 w-full"
+              style={{
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <MessageListItem
+                message={msg}
+                active={msg.id === effectiveMessageId}
+                onSelect={onSelect}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -439,14 +496,29 @@ function MessageDetail({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-lg font-medium">
-          {decodeMimeHeaderValue(summary.subject) || "(No subject)"}
-        </h2>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span>{decodeMimeHeaderValue(summary.fromAddr)}</span>
-          <span>{formatDate(summary.receivedAt)}</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-medium">
+            {decodeMimeHeaderValue(summary.subject) || "(No subject)"}
+          </h2>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span>{decodeMimeHeaderValue(summary.fromAddr)}</span>
+            <span>{formatDate(summary.receivedAt)}</span>
+          </div>
         </div>
+        <Button
+          onClick={() => {
+            setFeedback(null);
+            void downloadMailboxMessageRaw(mailboxId, summary.id).catch(() => {
+              setFeedback("Download failed. Please try again.");
+            });
+          }}
+          size="sm"
+          variant="secondary"
+        >
+          <Download className="size-4" />
+          Download .eml
+        </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
