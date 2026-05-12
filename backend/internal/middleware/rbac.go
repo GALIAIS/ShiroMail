@@ -1,21 +1,20 @@
-package middleware
+﻿package middleware
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 func RequireRoles(allowed ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		value, exists := ctx.Get("auth.roles")
 		if !exists {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.AbortChain(ctx, apierror.ErrForbidden)
 			return
 		}
 		roles, ok := value.([]string)
 		if !ok {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.AbortChain(ctx, apierror.ErrForbidden)
 			return
 		}
 		for _, role := range roles {
@@ -26,6 +25,6 @@ func RequireRoles(allowed ...string) gin.HandlerFunc {
 				}
 			}
 		}
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+		apierror.AbortChain(ctx, apierror.ErrForbidden)
 	}
 }

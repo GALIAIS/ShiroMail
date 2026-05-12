@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"shiro-email/backend/internal/shared/apierror"
 	"github.com/gorilla/websocket"
 )
 
@@ -61,12 +62,12 @@ func (h *Hub) checkOrigin(r *http.Request) bool {
 func (h *Hub) HandleWS(ctx *gin.Context) {
 	userIDVal, exists := ctx.Get("auth.userID")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	userID, ok := userIDVal.(uint64)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 

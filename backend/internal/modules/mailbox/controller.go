@@ -1,14 +1,14 @@
-package mailbox
+﻿package mailbox
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/middleware"
 	"shiro-email/backend/internal/modules/domain"
 	"shiro-email/backend/internal/modules/portal"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type Controller struct {
@@ -22,43 +22,43 @@ func NewController(service *Service) *Controller {
 func (c *Controller) Dashboard(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	payload, err := c.service.BuildDashboard(ctx, userID, currentAPIKeyArgs(ctx)...)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to build dashboard"})
+		apierror.Abort(ctx, apierror.ErrMailboxDashboardFailed)
 		return
 	}
-	ctx.JSON(http.StatusOK, payload)
+	ctx.JSON(200, payload)
 }
 
 func (c *Controller) List(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	items, err := c.service.ListMailboxes(ctx, userID, currentAPIKeyArgs(ctx)...)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list mailboxes"})
+		apierror.Abort(ctx, apierror.ErrMailboxListFailed)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"items": items})
+	ctx.JSON(200, gin.H{"items": items})
 }
 
 func (c *Controller) Create(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	var req CreateMailboxRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -66,22 +66,22 @@ func (c *Controller) Create(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrInvalidMailboxTTL):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxInvalidTTL, err.Error())
 		case errors.Is(err, ErrInvalidLocalPart):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxInvalidLocalPart, err.Error())
 		case errors.Is(err, ErrDomainVerificationRequired):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxDomainVerification, err.Error())
 		case errors.Is(err, domain.ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrDomainNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create mailbox"})
+			apierror.Abort(ctx, apierror.ErrMailboxCreateFailed)
 		}
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, item)
+	ctx.JSON(201, item)
 }
 
 func (c *Controller) Extend(ctx *gin.Context) {
@@ -91,79 +91,79 @@ func (c *Controller) Extend(ctx *gin.Context) {
 func (c *Controller) Release(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, ok := mailboxIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.ReleaseMailbox(ctx, userID, mailboxID, currentAPIKeyArgs(ctx)...)
 	if err != nil {
 		if errors.Is(err, portal.ErrAPIKeyForbidden) {
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 			return
 		}
 		if errors.Is(err, ErrMailboxNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to release mailbox"})
+		apierror.Abort(ctx, apierror.ErrMailboxReleaseFailed)
 		return
 	}
-	ctx.JSON(http.StatusOK, item)
+	ctx.JSON(200, item)
 }
 
 func (c *Controller) UpdateForwarding(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, ok := mailboxIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req UpdateForwardingRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.UpdateForwarding(ctx, userID, mailboxID, req)
 	if err != nil {
 		if errors.Is(err, ErrMailboxNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxNotFound, err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update forwarding"})
+		apierror.Abort(ctx, apierror.ErrMailboxForwardingFailed)
 		return
 	}
-	ctx.JSON(http.StatusOK, item)
+	ctx.JSON(200, item)
 }
 
 func (c *Controller) updateExpiry(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, ok := mailboxIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req ExtendMailboxRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -171,17 +171,17 @@ func (c *Controller) updateExpiry(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrInvalidMailboxTTL):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxInvalidTTL, err.Error())
 		case errors.Is(err, ErrMailboxNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMailboxNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to extend mailbox"})
+			apierror.Abort(ctx, apierror.ErrMailboxExtendFailed)
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, item)
+	ctx.JSON(200, item)
 }
 
 func currentUserID(ctx *gin.Context) (uint64, bool) {

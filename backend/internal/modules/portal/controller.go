@@ -1,4 +1,4 @@
-package portal
+﻿package portal
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type WebhookTestResult struct {
@@ -47,12 +48,12 @@ func NewController(service *Service, extras ...any) *Controller {
 func (c *Controller) Overview(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	item, err := c.service.Overview(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load overview"})
+		apierror.Abort(ctx, apierror.ErrPortalOverviewFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -61,7 +62,7 @@ func (c *Controller) Overview(ctx *gin.Context) {
 func (c *Controller) ListNotices(ctx *gin.Context) {
 	items, err := c.service.ListNotices(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load notices"})
+		apierror.Abort(ctx, apierror.InternalError("failed to load notices"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -70,12 +71,12 @@ func (c *Controller) ListNotices(ctx *gin.Context) {
 func (c *Controller) ListFeedback(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	items, err := c.service.ListFeedback(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load feedback"})
+		apierror.Abort(ctx, apierror.ErrPortalFeedbackFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -84,7 +85,7 @@ func (c *Controller) ListFeedback(ctx *gin.Context) {
 func (c *Controller) CreateFeedback(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	var req struct {
@@ -93,12 +94,12 @@ func (c *Controller) CreateFeedback(ctx *gin.Context) {
 		Content  string `json:"content"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.CreateFeedback(ctx, userID, req.Category, req.Subject, req.Content)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to submit feedback"})
+		apierror.Abort(ctx, apierror.ErrPortalFeedbackFailed)
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -107,12 +108,12 @@ func (c *Controller) CreateFeedback(ctx *gin.Context) {
 func (c *Controller) ListAPIKeys(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	items, err := c.service.ListAPIKeys(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load api keys"})
+		apierror.Abort(ctx, apierror.InternalError("failed to load api keys"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -121,7 +122,7 @@ func (c *Controller) ListAPIKeys(ctx *gin.Context) {
 func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	var req struct {
@@ -132,7 +133,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 		DomainBindings []APIKeyDomainBinding `json:"domainBindings"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.CreateAPIKey(ctx, userID, CreateAPIKeyInput{
@@ -143,7 +144,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 		DomainBindings: req.DomainBindings,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create api key"})
+		apierror.Abort(ctx, apierror.ErrPortalAPIKeyCreateFailed)
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -153,7 +154,7 @@ func (c *Controller) RotateAPIKey(ctx *gin.Context) {
 	c.withAPIKeyID(ctx, func(userID uint64, apiKeyID uint64) {
 		item, err := c.service.RotateAPIKey(ctx, userID, apiKeyID)
 		if err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "api key not found"})
+			apierror.Abort(ctx, apierror.ErrPortalAPIKeyNotFound)
 			return
 		}
 		ctx.JSON(http.StatusOK, item)
@@ -164,7 +165,7 @@ func (c *Controller) RevokeAPIKey(ctx *gin.Context) {
 	c.withAPIKeyID(ctx, func(userID uint64, apiKeyID uint64) {
 		item, err := c.service.RevokeAPIKey(ctx, userID, apiKeyID)
 		if err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "api key not found"})
+			apierror.Abort(ctx, apierror.ErrPortalAPIKeyNotFound)
 			return
 		}
 		ctx.JSON(http.StatusOK, item)
@@ -174,12 +175,12 @@ func (c *Controller) RevokeAPIKey(ctx *gin.Context) {
 func (c *Controller) ListWebhooks(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	items, err := c.service.ListWebhooks(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load webhooks"})
+		apierror.Abort(ctx, apierror.InternalError("failed to load webhooks"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -192,7 +193,7 @@ func (c *Controller) ListWebhookEventTypes(ctx *gin.Context) {
 func (c *Controller) CreateWebhook(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	var req struct {
@@ -201,12 +202,12 @@ func (c *Controller) CreateWebhook(ctx *gin.Context) {
 		Events    []string `json:"events"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.CreateWebhook(ctx, userID, req.Name, req.TargetURL, req.Events)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create webhook"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookCreateFailed)
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -215,12 +216,12 @@ func (c *Controller) CreateWebhook(ctx *gin.Context) {
 func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	webhookID, ok := parseParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	var req struct {
@@ -229,12 +230,12 @@ func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 		Events    []string `json:"events"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.UpdateWebhook(ctx, userID, webhookID, req.Name, req.TargetURL, req.Events)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookNotFound)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -243,24 +244,24 @@ func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	webhookID, ok := parseParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	var req struct {
 		Enabled bool `json:"enabled"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.ToggleWebhook(ctx, userID, webhookID, req.Enabled)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookNotFound)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -269,13 +270,13 @@ func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 func (c *Controller) ListWebhookDeliveryLogs(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	webhookID, _ := parseParamID(ctx, "id")
 	items, err := c.service.ListWebhookDeliveryLogs(ctx, userID, webhookID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load delivery logs"})
+		apierror.Abort(ctx, apierror.InternalError("failed to load delivery logs"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -284,21 +285,21 @@ func (c *Controller) ListWebhookDeliveryLogs(ctx *gin.Context) {
 func (c *Controller) TestWebhook(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	webhookID, ok := parseParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	wh, err := c.service.TestWebhook(ctx, userID, webhookID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookNotFound)
 		return
 	}
 	if c.webhookTester == nil {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{"message": "webhook dispatcher not available"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookUnavailable)
 		return
 	}
 	result := c.webhookTester.TestDeliver(ctx.Request.Context(), userID, wh)
@@ -308,21 +309,21 @@ func (c *Controller) TestWebhook(ctx *gin.Context) {
 func (c *Controller) RetryWebhookDelivery(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	deliveryID, ok := parseParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid delivery id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	if c.webhookRetrier == nil {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{"message": "webhook dispatcher not available"})
+		apierror.Abort(ctx, apierror.ErrPortalWebhookUnavailable)
 		return
 	}
 	result, err := c.service.RetryWebhookDelivery(ctx, userID, deliveryID, c.webhookRetrier)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "delivery log not found"})
+		apierror.Abort(ctx, apierror.ErrPortalDeliveryNotFound)
 		return
 	}
 	ctx.JSON(http.StatusOK, result)
@@ -331,7 +332,7 @@ func (c *Controller) RetryWebhookDelivery(ctx *gin.Context) {
 func (c *Controller) ListDocs(ctx *gin.Context) {
 	items, err := c.service.ListDocs(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load docs"})
+		apierror.Abort(ctx, apierror.InternalError("failed to load docs"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -340,12 +341,12 @@ func (c *Controller) ListDocs(ctx *gin.Context) {
 func (c *Controller) GetBilling(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	item, err := c.service.GetBilling(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load billing"})
+		apierror.Abort(ctx, apierror.ErrPortalBillingFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -354,12 +355,12 @@ func (c *Controller) GetBilling(ctx *gin.Context) {
 func (c *Controller) GetBalance(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	item, err := c.service.GetBalance(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load balance"})
+		apierror.Abort(ctx, apierror.ErrPortalBillingFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -368,12 +369,12 @@ func (c *Controller) GetBalance(ctx *gin.Context) {
 func (c *Controller) GetSettings(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	item, err := c.service.GetSettings(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load settings"})
+		apierror.Abort(ctx, apierror.ErrPortalSettingsFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -382,7 +383,7 @@ func (c *Controller) GetSettings(ctx *gin.Context) {
 func (c *Controller) UpdateSettings(ctx *gin.Context) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	var req struct {
@@ -392,12 +393,12 @@ func (c *Controller) UpdateSettings(ctx *gin.Context) {
 		AutoRefreshSeconds int    `json:"autoRefreshSeconds"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.UpdateSettings(ctx, userID, req.DisplayName, req.Locale, req.Timezone, req.AutoRefreshSeconds)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update settings"})
+		apierror.Abort(ctx, apierror.ErrPortalSettingsFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -406,12 +407,12 @@ func (c *Controller) UpdateSettings(ctx *gin.Context) {
 func (c *Controller) withAPIKeyID(ctx *gin.Context, fn func(userID uint64, apiKeyID uint64)) {
 	userID, ok := authUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	apiKeyID, ok := parseParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	fn(userID, apiKeyID)

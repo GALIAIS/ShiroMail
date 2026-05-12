@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/middleware"
 	"shiro-email/backend/internal/modules/portal"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type Controller struct {
@@ -21,13 +22,13 @@ func NewController(service *Service) *Controller {
 func (c *Controller) List(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	items, err := c.service.ListAccessibleActive(ctx, userID, currentAPIKeyArgs(ctx)...)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list domains"})
+		apierror.Abort(ctx, apierror.ErrDomainListFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -36,13 +37,13 @@ func (c *Controller) List(ctx *gin.Context) {
 func (c *Controller) Create(ctx *gin.Context) {
 	var req CreateDomainRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -50,13 +51,13 @@ func (c *Controller) Create(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrInvalidDomain):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrDomainInvalid, err.Error())
 		case errors.Is(err, ErrDomainAlreadyExists):
-			ctx.JSON(http.StatusConflict, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainAlreadyExists)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create domain"})
+			apierror.Abort(ctx, apierror.ErrDomainCreateFailed)
 		}
 		return
 	}
@@ -66,13 +67,13 @@ func (c *Controller) Create(ctx *gin.Context) {
 func (c *Controller) Generate(ctx *gin.Context) {
 	var req GenerateSubdomainsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -80,13 +81,13 @@ func (c *Controller) Generate(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrInvalidDomain):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrDomainInvalid, err.Error())
 		case errors.Is(err, ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to generate subdomains"})
+			apierror.Abort(ctx, apierror.ErrDomainGenerateFailed)
 		}
 		return
 	}
@@ -96,24 +97,26 @@ func (c *Controller) Generate(ctx *gin.Context) {
 func (c *Controller) Delete(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteOwned(ctx, userID, domainID); err != nil {
 		switch {
 		case errors.Is(err, ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrDomainHasChildren), errors.Is(err, ErrDomainHasMailboxes):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, ErrDomainHasChildren):
+			apierror.Abort(ctx, apierror.ErrDomainHasChildren)
+		case errors.Is(err, ErrDomainHasMailboxes):
+			apierror.Abort(ctx, apierror.ErrDomainHasMailboxes)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete domain"})
+			apierror.Abort(ctx, apierror.ErrDomainDeleteFailed)
 		}
 		return
 	}
@@ -124,19 +127,19 @@ func (c *Controller) Delete(ctx *gin.Context) {
 func (c *Controller) UpdateOwnedProviderBinding(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req UpdateOwnedDomainProviderBindingRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -144,11 +147,13 @@ func (c *Controller) UpdateOwnedProviderBinding(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-		case errors.Is(err, ErrDomainNotFound), errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
+		case errors.Is(err, ErrDomainNotFound):
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update domain provider binding"})
+			apierror.Abort(ctx, apierror.ErrProviderUpdateFailed)
 		}
 		return
 	}
@@ -159,13 +164,13 @@ func (c *Controller) UpdateOwnedProviderBinding(ctx *gin.Context) {
 func (c *Controller) VerifyOwnedDomain(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -173,13 +178,17 @@ func (c *Controller) VerifyOwnedDomain(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-		case errors.Is(err, ErrDomainNotFound), errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrProviderAdapterUnavailable), errors.Is(err, ErrInvalidDNSChangeSetRequest):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
+		case errors.Is(err, ErrDomainNotFound):
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(err, ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(err, ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrDomainVerifyFailed, err.Error())
 		}
 		return
 	}
@@ -190,7 +199,7 @@ func (c *Controller) VerifyOwnedDomain(ctx *gin.Context) {
 func (c *Controller) GenerateAdmin(ctx *gin.Context) {
 	var req GenerateSubdomainsRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -198,11 +207,11 @@ func (c *Controller) GenerateAdmin(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidDomain):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrDomainInvalid, err.Error())
 		case errors.Is(err, ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to generate subdomains"})
+			apierror.Abort(ctx, apierror.ErrDomainGenerateFailed)
 		}
 		return
 	}
@@ -212,13 +221,13 @@ func (c *Controller) GenerateAdmin(ctx *gin.Context) {
 func (c *Controller) RequestPublicPoolPublication(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -226,13 +235,13 @@ func (c *Controller) RequestPublicPoolPublication(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
 		case errors.Is(err, ErrInvalidPublicationState):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainInvalidPublication)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to request public pool publication"})
+			apierror.Abort(ctx, apierror.ErrDomainPublicationFailed)
 		}
 		return
 	}
@@ -242,13 +251,13 @@ func (c *Controller) RequestPublicPoolPublication(ctx *gin.Context) {
 func (c *Controller) WithdrawPublicPoolPublication(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -256,13 +265,13 @@ func (c *Controller) WithdrawPublicPoolPublication(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
 		case errors.Is(err, ErrInvalidPublicationState):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainInvalidPublication)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to withdraw public pool publication"})
+			apierror.Abort(ctx, apierror.ErrDomainPublicationFailed)
 		}
 		return
 	}
@@ -272,13 +281,13 @@ func (c *Controller) WithdrawPublicPoolPublication(ctx *gin.Context) {
 func (c *Controller) ListOwnedProviderAccounts(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	items, err := c.service.ListOwnedProviderAccounts(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list provider accounts"})
+		apierror.AbortWithMessage(ctx, apierror.ErrProviderCreateFailed, "failed to list provider accounts")
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -287,19 +296,19 @@ func (c *Controller) ListOwnedProviderAccounts(ctx *gin.Context) {
 func (c *Controller) CreateOwnedProviderAccount(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	var req CreateProviderAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.CreateOwnedProviderAccount(ctx, userID, req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create provider account"})
+		apierror.Abort(ctx, apierror.ErrProviderCreateFailed)
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -308,19 +317,19 @@ func (c *Controller) CreateOwnedProviderAccount(ctx *gin.Context) {
 func (c *Controller) UpdateOwnedProviderAccount(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req CreateProviderAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -328,11 +337,11 @@ func (c *Controller) UpdateOwnedProviderAccount(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAccountImmutableFieldsLocked):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderImmutableFields)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update provider account"})
+			apierror.Abort(ctx, apierror.ErrProviderUpdateFailed)
 		}
 		return
 	}
@@ -343,24 +352,24 @@ func (c *Controller) UpdateOwnedProviderAccount(ctx *gin.Context) {
 func (c *Controller) DeleteOwnedProviderAccount(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteOwnedProviderAccount(ctx, userID, providerAccountID); err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAccountInUse):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountInUse)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete provider account"})
+			apierror.Abort(ctx, apierror.ErrProviderDeleteFailed)
 		}
 		return
 	}
@@ -370,13 +379,13 @@ func (c *Controller) DeleteOwnedProviderAccount(ctx *gin.Context) {
 func (c *Controller) ValidateOwnedProviderAccount(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -384,11 +393,11 @@ func (c *Controller) ValidateOwnedProviderAccount(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderValidateFailed)
 		}
 		return
 	}
@@ -398,13 +407,13 @@ func (c *Controller) ValidateOwnedProviderAccount(ctx *gin.Context) {
 func (c *Controller) ListOwnedProviderZones(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -412,11 +421,11 @@ func (c *Controller) ListOwnedProviderZones(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderZonesFailed)
 		}
 		return
 	}
@@ -426,13 +435,13 @@ func (c *Controller) ListOwnedProviderZones(ctx *gin.Context) {
 func (c *Controller) ListOwnedProviderRecords(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -440,11 +449,11 @@ func (c *Controller) ListOwnedProviderRecords(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderRecordsFailed)
 		}
 		return
 	}
@@ -454,13 +463,13 @@ func (c *Controller) ListOwnedProviderRecords(ctx *gin.Context) {
 func (c *Controller) ListOwnedProviderChangeSets(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -468,11 +477,11 @@ func (c *Controller) ListOwnedProviderChangeSets(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list provider change sets"})
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetListFailed)
 		}
 		return
 	}
@@ -482,13 +491,13 @@ func (c *Controller) ListOwnedProviderChangeSets(ctx *gin.Context) {
 func (c *Controller) ListOwnedProviderVerifications(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -496,11 +505,13 @@ func (c *Controller) ListOwnedProviderVerifications(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrProviderAdapterUnavailable), errors.Is(err, ErrInvalidDNSChangeSetRequest):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(err, ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(err, ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list provider verification profiles"})
+			apierror.Abort(ctx, apierror.ErrDNSVerificationListFailed)
 		}
 		return
 	}
@@ -510,31 +521,37 @@ func (c *Controller) ListOwnedProviderVerifications(ctx *gin.Context) {
 func (c *Controller) PreviewOwnedProviderChangeSet(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, ok := domainIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req PreviewProviderChangeSetRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.PreviewOwnedProviderChangeSet(ctx, userID, providerAccountID, ctx.Param("zoneId"), req)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrProviderAccountNotFound), errors.Is(err, ErrDNSChangeSetNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrProviderAdapterUnavailable), errors.Is(err, ErrInvalidDNSChangeSetRequest), errors.Is(err, ErrUnsupportedDNSRecordType):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		case errors.Is(err, ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(err, ErrDNSChangeSetNotFound):
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetNotFound)
+		case errors.Is(err, ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(err, ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
+		case errors.Is(err, ErrUnsupportedDNSRecordType):
+			apierror.Abort(ctx, apierror.ErrDNSUnsupportedRecordType)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to preview provider change set"})
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetPreviewFailed)
 		}
 		return
 	}
@@ -544,25 +561,31 @@ func (c *Controller) PreviewOwnedProviderChangeSet(ctx *gin.Context) {
 func (c *Controller) ApplyOwnedProviderChangeSet(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	changeSetID, ok := changeSetIDFromParam(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid change set id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.ApplyOwnedProviderChangeSet(ctx, userID, changeSetID)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrDNSChangeSetNotFound), errors.Is(err, ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrProviderAdapterUnavailable), errors.Is(err, ErrInvalidDNSChangeSetRequest), errors.Is(err, ErrUnsupportedDNSRecordType):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		case errors.Is(err, ErrDNSChangeSetNotFound):
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetNotFound)
+		case errors.Is(err, ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(err, ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(err, ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
+		case errors.Is(err, ErrUnsupportedDNSRecordType):
+			apierror.Abort(ctx, apierror.ErrDNSUnsupportedRecordType)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to apply provider change set"})
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetApplyFailed)
 		}
 		return
 	}

@@ -1,13 +1,13 @@
-package middleware
+﻿package middleware
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/modules/auth"
 	"shiro-email/backend/internal/modules/portal"
+	"shiro-email/backend/internal/shared/apierror"
 	"shiro-email/backend/internal/shared/security"
 )
 
@@ -25,12 +25,12 @@ func RequireAuth(secret string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		tokenString := bearerToken(ctx)
 		if tokenString == "" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 		claims, err := security.ParseAccessToken(tokenString, secret)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 		setJWTAuthContext(ctx, claims.UserID, claims.Roles)
@@ -42,7 +42,7 @@ func RequireUserOrAPIKey(secret string, authenticator APIKeyAuthenticator, users
 	return func(ctx *gin.Context) {
 		tokenString := bearerToken(ctx)
 		if tokenString == "" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 
@@ -50,7 +50,7 @@ func RequireUserOrAPIKey(secret string, authenticator APIKeyAuthenticator, users
 			if users != nil {
 				if user, userErr := users.FindUserByID(ctx.Request.Context(), claims.UserID); userErr == nil {
 					if user.Status == "banned" || user.Status == "disabled" {
-						ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "account suspended"})
+						apierror.AbortChain(ctx, apierror.ErrAccountSuspended)
 						return
 					}
 				}
@@ -61,13 +61,13 @@ func RequireUserOrAPIKey(secret string, authenticator APIKeyAuthenticator, users
 		}
 
 		if authenticator == nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 
 		apiKey, err := authenticator.AuthenticateAPIKey(ctx.Request.Context(), tokenString)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 
@@ -75,7 +75,7 @@ func RequireUserOrAPIKey(secret string, authenticator APIKeyAuthenticator, users
 		if users != nil {
 			if user, userErr := users.FindUserByID(ctx.Request.Context(), apiKey.UserID); userErr == nil && len(user.Roles) != 0 {
 				if user.Status == "banned" || user.Status == "disabled" {
-					ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "account suspended"})
+					apierror.AbortChain(ctx, apierror.ErrAccountSuspended)
 					return
 				}
 				roles = append([]string{}, user.Roles...)
@@ -99,7 +99,7 @@ func RequireAPIScope(scope string) gin.HandlerFunc {
 			return
 		}
 		if !portal.APIKeyHasScope(apiKey, scope) {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.AbortChain(ctx, apierror.ErrForbidden)
 			return
 		}
 		ctx.Next()
@@ -120,7 +120,6 @@ func bearerToken(ctx *gin.Context) string {
 	if header != "" && strings.HasPrefix(header, "Bearer ") {
 		return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
 	}
-	// Fallback: allow token via query parameter for browser-initiated downloads (e.g. CSV export).
 	if qToken := strings.TrimSpace(ctx.Query("token")); qToken != "" {
 		return qToken
 	}
@@ -147,11 +146,11 @@ func RequireActiveUser(users UserRoleLookup) gin.HandlerFunc {
 		}
 		user, err := users.FindUserByID(ctx.Request.Context(), userID)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+			apierror.AbortChain(ctx, apierror.ErrUnauthorized)
 			return
 		}
 		if user.Status == "banned" || user.Status == "disabled" {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "account suspended"})
+			apierror.AbortChain(ctx, apierror.ErrAccountSuspended)
 			return
 		}
 		ctx.Next()

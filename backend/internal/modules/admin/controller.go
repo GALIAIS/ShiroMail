@@ -15,6 +15,7 @@ import (
 	"shiro-email/backend/internal/modules/mailbox"
 	"shiro-email/backend/internal/modules/message"
 	"shiro-email/backend/internal/modules/portal"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type Controller struct {
@@ -28,7 +29,7 @@ func NewController(service *Service) *Controller {
 func (c *Controller) Overview(ctx *gin.Context) {
 	payload, err := c.service.Overview(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to build overview"})
+		apierror.Abort(ctx, apierror.ErrAdminOverviewFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, payload)
@@ -37,7 +38,7 @@ func (c *Controller) Overview(ctx *gin.Context) {
 func (c *Controller) ListUsers(ctx *gin.Context) {
 	items, err := c.service.ListUsers(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list users"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list users"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -46,13 +47,13 @@ func (c *Controller) ListUsers(ctx *gin.Context) {
 func (c *Controller) GetUserDetail(ctx *gin.Context) {
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	detail, err := c.service.GetUserDetail(ctx, userID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		apierror.Abort(ctx, apierror.ErrUserNotFound)
 		return
 	}
 	ctx.JSON(http.StatusOK, detail)
@@ -61,13 +62,13 @@ func (c *Controller) GetUserDetail(ctx *gin.Context) {
 func (c *Controller) UpdateUserRoles(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -75,7 +76,7 @@ func (c *Controller) UpdateUserRoles(ctx *gin.Context) {
 		Roles []string `json:"roles"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -83,11 +84,15 @@ func (c *Controller) UpdateUserRoles(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		case errors.Is(err, ErrInvalidUserRoles), errors.Is(err, ErrCannotRemoveOwnAdminRole), errors.Is(err, ErrCannotRemoveLastAdminRole):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
+		case errors.Is(err, ErrInvalidUserRoles):
+			apierror.Abort(ctx, apierror.ErrAdminInvalidUserRoles)
+		case errors.Is(err, ErrCannotRemoveOwnAdminRole):
+			apierror.Abort(ctx, apierror.ErrAdminCannotRemoveOwnRole)
+		case errors.Is(err, ErrCannotRemoveLastAdminRole):
+			apierror.Abort(ctx, apierror.ErrAdminCannotRemoveLastRole)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update user roles"})
+			apierror.Abort(ctx, apierror.InternalError("failed to update user roles"))
 		}
 		return
 	}
@@ -98,13 +103,13 @@ func (c *Controller) UpdateUserRoles(ctx *gin.Context) {
 func (c *Controller) UpdateUser(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -117,7 +122,7 @@ func (c *Controller) UpdateUser(ctx *gin.Context) {
 		NewPassword   string   `json:"newPassword"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -132,16 +137,21 @@ func (c *Controller) UpdateUser(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		case errors.Is(err, ErrInvalidUserRoles),
-			errors.Is(err, ErrInvalidUserProfile),
-			errors.Is(err, ErrCannotRemoveOwnAdminRole),
-			errors.Is(err, ErrCannotRemoveLastAdminRole):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		case err.Error() == "username already exists", err.Error() == "email already exists":
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
+		case errors.Is(err, ErrInvalidUserRoles):
+			apierror.Abort(ctx, apierror.ErrAdminInvalidUserRoles)
+		case errors.Is(err, ErrInvalidUserProfile):
+			apierror.Abort(ctx, apierror.ErrAdminInvalidUserProfile)
+		case errors.Is(err, ErrCannotRemoveOwnAdminRole):
+			apierror.Abort(ctx, apierror.ErrAdminCannotRemoveOwnRole)
+		case errors.Is(err, ErrCannotRemoveLastAdminRole):
+			apierror.Abort(ctx, apierror.ErrAdminCannotRemoveLastRole)
+		case err.Error() == "username already exists":
+			apierror.Abort(ctx, apierror.ErrAdminUsernameExists)
+		case err.Error() == "email already exists":
+			apierror.Abort(ctx, apierror.ErrAdminEmailExists)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.InternalError(err.Error()))
 		}
 		return
 	}
@@ -152,28 +162,32 @@ func (c *Controller) UpdateUser(ctx *gin.Context) {
 func (c *Controller) DeleteUser(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteUser(ctx, actorID, userID); err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		case errors.Is(err, ErrCannotDeleteOwnAccount),
-			errors.Is(err, ErrCannotDeleteLastAdmin),
-			errors.Is(err, ErrUserHasMailboxes),
-			errors.Is(err, ErrUserOwnsDomains),
-			errors.Is(err, ErrUserOwnsProviderAccounts):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
+		case errors.Is(err, ErrCannotDeleteOwnAccount):
+			apierror.Abort(ctx, apierror.ErrAdminCannotDeleteSelf)
+		case errors.Is(err, ErrCannotDeleteLastAdmin):
+			apierror.Abort(ctx, apierror.ErrAdminCannotDeleteLastAdmin)
+		case errors.Is(err, ErrUserHasMailboxes):
+			apierror.Abort(ctx, apierror.ErrAdminUserHasMailboxes)
+		case errors.Is(err, ErrUserOwnsDomains):
+			apierror.Abort(ctx, apierror.ErrAdminUserOwnsDomains)
+		case errors.Is(err, ErrUserOwnsProviderAccounts):
+			apierror.Abort(ctx, apierror.ErrAdminUserOwnsProviders)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete user"})
+			apierror.Abort(ctx, apierror.InternalError("failed to delete user"))
 		}
 		return
 	}
@@ -184,13 +198,13 @@ func (c *Controller) DeleteUser(ctx *gin.Context) {
 func (c *Controller) BanUser(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -203,11 +217,13 @@ func (c *Controller) BanUser(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		case errors.Is(err, ErrCannotBanSelf), errors.Is(err, ErrCannotBanAdmin):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
+		case errors.Is(err, ErrCannotBanSelf):
+			apierror.Abort(ctx, apierror.ErrAdminCannotBanSelf)
+		case errors.Is(err, ErrCannotBanAdmin):
+			apierror.Abort(ctx, apierror.ErrAdminCannotBanAdmin)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to ban user"})
+			apierror.Abort(ctx, apierror.InternalError("failed to ban user"))
 		}
 		return
 	}
@@ -218,13 +234,13 @@ func (c *Controller) BanUser(ctx *gin.Context) {
 func (c *Controller) UnbanUser(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	userID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -232,11 +248,11 @@ func (c *Controller) UnbanUser(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
 		case errors.Is(err, ErrInvalidUserProfile):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "user is not banned"})
+			apierror.Abort(ctx, apierror.ErrAdminInvalidUserProfile)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to unban user"})
+			apierror.Abort(ctx, apierror.InternalError("failed to unban user"))
 		}
 		return
 	}
@@ -247,7 +263,7 @@ func (c *Controller) UnbanUser(ctx *gin.Context) {
 func (c *Controller) BatchUserAction(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -256,17 +272,17 @@ func (c *Controller) BatchUserAction(ctx *gin.Context) {
 		Action string   `json:"action"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	if len(req.IDs) == 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "ids must not be empty"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	switch req.Action {
 	case "ban", "unban", "delete":
 	default:
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "action must be ban, unban, or delete"})
+		apierror.Abort(ctx, apierror.ErrAdminBatchActionInvalid)
 		return
 	}
 
@@ -277,7 +293,7 @@ func (c *Controller) BatchUserAction(ctx *gin.Context) {
 func (c *Controller) ListDomains(ctx *gin.Context) {
 	items, err := c.service.ListDomains(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list domains"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list domains"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -286,7 +302,7 @@ func (c *Controller) ListDomains(ctx *gin.Context) {
 func (c *Controller) ListDomainProviders(ctx *gin.Context) {
 	items, err := c.service.ListDomainProviders(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list domain providers"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list domain providers"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -295,7 +311,7 @@ func (c *Controller) ListDomainProviders(ctx *gin.Context) {
 func (c *Controller) ListMailboxes(ctx *gin.Context) {
 	items, err := c.service.ListMailboxes(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list mailboxes"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list mailboxes"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -304,7 +320,7 @@ func (c *Controller) ListMailboxes(ctx *gin.Context) {
 func (c *Controller) ListMailboxDomains(ctx *gin.Context) {
 	items, err := c.service.ListMailboxDomains(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list mailbox domains"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list mailbox domains"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -313,7 +329,7 @@ func (c *Controller) ListMailboxDomains(ctx *gin.Context) {
 func (c *Controller) CreateMailbox(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -322,7 +338,7 @@ func (c *Controller) CreateMailbox(ctx *gin.Context) {
 		mailbox.CreateMailboxRequest
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -330,13 +346,19 @@ func (c *Controller) CreateMailbox(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		case errors.Is(err, domain.ErrDomainNotFound), errors.Is(err, mailbox.ErrAddressConflict):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		case errors.Is(err, mailbox.ErrInvalidMailboxTTL), errors.Is(err, mailbox.ErrInvalidLocalPart), errors.Is(err, mailbox.ErrDomainVerificationRequired):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
+		case errors.Is(err, domain.ErrDomainNotFound):
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, mailbox.ErrAddressConflict):
+			apierror.Abort(ctx, apierror.ErrMailboxAddressConflict)
+		case errors.Is(err, mailbox.ErrInvalidMailboxTTL):
+			apierror.Abort(ctx, apierror.ErrMailboxInvalidTTL)
+		case errors.Is(err, mailbox.ErrInvalidLocalPart):
+			apierror.Abort(ctx, apierror.ErrMailboxInvalidLocalPart)
+		case errors.Is(err, mailbox.ErrDomainVerificationRequired):
+			apierror.Abort(ctx, apierror.ErrMailboxDomainVerification)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create mailbox"})
+			apierror.Abort(ctx, apierror.InternalError("failed to create mailbox"))
 		}
 		return
 	}
@@ -347,19 +369,19 @@ func (c *Controller) CreateMailbox(ctx *gin.Context) {
 func (c *Controller) ExtendMailbox(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, ok := parseAdminMailboxID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req mailbox.ExtendMailboxRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -367,11 +389,11 @@ func (c *Controller) ExtendMailbox(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, mailbox.ErrMailboxNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "mailbox not found"})
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
 		case errors.Is(err, mailbox.ErrInvalidMailboxTTL):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrMailboxInvalidTTL)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to extend mailbox"})
+			apierror.Abort(ctx, apierror.InternalError("failed to extend mailbox"))
 		}
 		return
 	}
@@ -381,13 +403,13 @@ func (c *Controller) ExtendMailbox(ctx *gin.Context) {
 func (c *Controller) ReleaseMailbox(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, ok := parseAdminMailboxID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -395,9 +417,9 @@ func (c *Controller) ReleaseMailbox(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, mailbox.ErrMailboxNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "mailbox not found"})
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to release mailbox"})
+			apierror.Abort(ctx, apierror.InternalError("failed to release mailbox"))
 		}
 		return
 	}
@@ -407,7 +429,7 @@ func (c *Controller) ReleaseMailbox(ctx *gin.Context) {
 func (c *Controller) ListMessages(ctx *gin.Context) {
 	items, err := c.service.ListMessages(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list messages"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list messages"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -416,7 +438,7 @@ func (c *Controller) ListMessages(ctx *gin.Context) {
 func (c *Controller) ListMailboxMessages(ctx *gin.Context) {
 	mailboxID, ok := parseAdminParamID(ctx, "mailboxId")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -424,9 +446,9 @@ func (c *Controller) ListMailboxMessages(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, mailbox.ErrMailboxNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "mailbox not found"})
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list mailbox messages"})
+			apierror.Abort(ctx, apierror.InternalError("failed to list mailbox messages"))
 		}
 		return
 	}
@@ -436,12 +458,12 @@ func (c *Controller) ListMailboxMessages(ctx *gin.Context) {
 func (c *Controller) MailboxMessageDetail(ctx *gin.Context) {
 	mailboxID, ok := parseAdminParamID(ctx, "mailboxId")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	messageID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -449,13 +471,13 @@ func (c *Controller) MailboxMessageDetail(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, mailbox.ErrMailboxNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "mailbox not found"})
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
 		case errors.Is(err, message.ErrMessageDeleted):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "message deleted"})
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
 		case message.IsNotFound(err):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load mailbox message"})
+			apierror.Abort(ctx, apierror.InternalError("failed to load mailbox message"))
 		}
 		return
 	}
@@ -465,22 +487,28 @@ func (c *Controller) MailboxMessageDetail(ctx *gin.Context) {
 func (c *Controller) MailboxMessageRaw(ctx *gin.Context) {
 	mailboxID, ok := parseAdminParamID(ctx, "mailboxId")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	messageID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	download, err := c.service.DownloadMailboxMessageRaw(ctx, mailboxID, messageID)
 	if err != nil {
 		switch {
-		case errors.Is(err, mailbox.ErrMailboxNotFound), errors.Is(err, message.ErrMessageDeleted), message.IsNotFound(err), errors.Is(err, message.ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		case errors.Is(err, mailbox.ErrMailboxNotFound):
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
+		case errors.Is(err, message.ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, message.ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case message.IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load raw mailbox message"})
+			apierror.Abort(ctx, apierror.InternalError("failed to load raw mailbox message"))
 		}
 		return
 	}
@@ -490,22 +518,28 @@ func (c *Controller) MailboxMessageRaw(ctx *gin.Context) {
 func (c *Controller) MailboxMessageParsedRaw(ctx *gin.Context) {
 	mailboxID, ok := parseAdminParamID(ctx, "mailboxId")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	messageID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	parsed, err := c.service.ParseMailboxMessageRaw(ctx, mailboxID, messageID)
 	if err != nil {
 		switch {
-		case errors.Is(err, mailbox.ErrMailboxNotFound), errors.Is(err, message.ErrMessageDeleted), message.IsNotFound(err), errors.Is(err, message.ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		case errors.Is(err, mailbox.ErrMailboxNotFound):
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
+		case errors.Is(err, message.ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, message.ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case message.IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to parse raw mailbox message"})
+			apierror.Abort(ctx, apierror.InternalError("failed to parse raw mailbox message"))
 		}
 		return
 	}
@@ -515,27 +549,35 @@ func (c *Controller) MailboxMessageParsedRaw(ctx *gin.Context) {
 func (c *Controller) MailboxMessageAttachment(ctx *gin.Context) {
 	mailboxID, ok := parseAdminParamID(ctx, "mailboxId")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	messageID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	attachmentIndex, err := strconv.Atoi(ctx.Param("index"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid attachment index"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	download, err := c.service.DownloadMailboxMessageAttachment(ctx, mailboxID, messageID, attachmentIndex)
 	if err != nil {
 		switch {
-		case errors.Is(err, mailbox.ErrMailboxNotFound), errors.Is(err, message.ErrMessageDeleted), message.IsNotFound(err), errors.Is(err, message.ErrAttachmentNotFound), errors.Is(err, message.ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		case errors.Is(err, mailbox.ErrMailboxNotFound):
+			apierror.Abort(ctx, apierror.ErrMailboxNotFound)
+		case errors.Is(err, message.ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, message.ErrAttachmentNotFound):
+			apierror.Abort(ctx, apierror.ErrAttachmentNotFound)
+		case errors.Is(err, message.ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case message.IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load mailbox attachment"})
+			apierror.Abort(ctx, apierror.InternalError("failed to load mailbox attachment"))
 		}
 		return
 	}
@@ -545,13 +587,13 @@ func (c *Controller) MailboxMessageAttachment(ctx *gin.Context) {
 func (c *Controller) ListAPIKeys(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	items, err := c.service.ListAPIKeys(ctx, actorID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list api keys"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list api keys"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -560,7 +602,7 @@ func (c *Controller) ListAPIKeys(ctx *gin.Context) {
 func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -572,7 +614,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 		DomainBindings []portal.APIKeyDomainBinding `json:"domainBindings"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -584,7 +626,7 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 		DomainBindings: req.DomainBindings,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create api key"})
+		apierror.Abort(ctx, apierror.InternalError("failed to create api key"))
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -593,13 +635,13 @@ func (c *Controller) CreateAPIKey(ctx *gin.Context) {
 func (c *Controller) RotateAPIKey(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	apiKeyID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -607,9 +649,9 @@ func (c *Controller) RotateAPIKey(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "api key not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to rotate api key"})
+			apierror.Abort(ctx, apierror.InternalError("failed to rotate api key"))
 		}
 		return
 	}
@@ -619,13 +661,13 @@ func (c *Controller) RotateAPIKey(ctx *gin.Context) {
 func (c *Controller) RevokeAPIKey(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	apiKeyID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -633,9 +675,9 @@ func (c *Controller) RevokeAPIKey(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "api key not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to revoke api key"})
+			apierror.Abort(ctx, apierror.InternalError("failed to revoke api key"))
 		}
 		return
 	}
@@ -645,7 +687,7 @@ func (c *Controller) RevokeAPIKey(ctx *gin.Context) {
 func (c *Controller) ListWebhooks(ctx *gin.Context) {
 	items, err := c.service.ListWebhooks(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list webhooks"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list webhooks"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -654,7 +696,7 @@ func (c *Controller) ListWebhooks(ctx *gin.Context) {
 func (c *Controller) CreateWebhook(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -665,7 +707,7 @@ func (c *Controller) CreateWebhook(ctx *gin.Context) {
 		Events    []string `json:"events"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -673,9 +715,9 @@ func (c *Controller) CreateWebhook(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUserNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrUserNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create webhook"})
+			apierror.Abort(ctx, apierror.InternalError("failed to create webhook"))
 		}
 		return
 	}
@@ -685,13 +727,13 @@ func (c *Controller) CreateWebhook(ctx *gin.Context) {
 func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	webhookID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -701,7 +743,7 @@ func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 		Events    []string `json:"events"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -709,9 +751,9 @@ func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update webhook"})
+			apierror.Abort(ctx, apierror.InternalError("failed to update webhook"))
 		}
 		return
 	}
@@ -721,13 +763,13 @@ func (c *Controller) UpdateWebhook(ctx *gin.Context) {
 func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	webhookID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -735,7 +777,7 @@ func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 		Enabled bool `json:"enabled"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -743,9 +785,9 @@ func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "webhook not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to toggle webhook"})
+			apierror.Abort(ctx, apierror.InternalError("failed to toggle webhook"))
 		}
 		return
 	}
@@ -755,7 +797,7 @@ func (c *Controller) ToggleWebhook(ctx *gin.Context) {
 func (c *Controller) ListNotices(ctx *gin.Context) {
 	items, err := c.service.ListNotices(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list notices"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list notices"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -769,12 +811,12 @@ func (c *Controller) CreateNotice(ctx *gin.Context) {
 		Level    string `json:"level"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	item, err := c.service.CreateNotice(ctx, req.Title, req.Body, req.Category, req.Level)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create notice"})
+		apierror.Abort(ctx, apierror.InternalError("failed to create notice"))
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -783,13 +825,13 @@ func (c *Controller) CreateNotice(ctx *gin.Context) {
 func (c *Controller) UpdateNotice(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	noticeID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid notice id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -800,17 +842,17 @@ func (c *Controller) UpdateNotice(ctx *gin.Context) {
 		Level    string `json:"level"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.UpdateNotice(ctx, actorID, noticeID, req.Title, req.Body, req.Category, req.Level)
 	if err != nil {
 		if errors.Is(err, portal.ErrNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "notice not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update notice"})
+		apierror.Abort(ctx, apierror.InternalError("failed to update notice"))
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -819,22 +861,22 @@ func (c *Controller) UpdateNotice(ctx *gin.Context) {
 func (c *Controller) DeleteNotice(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	noticeID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid notice id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteNotice(ctx, actorID, noticeID); err != nil {
 		if errors.Is(err, portal.ErrNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "notice not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete notice"})
+		apierror.Abort(ctx, apierror.InternalError("failed to delete notice"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"ok": true})
@@ -843,7 +885,7 @@ func (c *Controller) DeleteNotice(ctx *gin.Context) {
 func (c *Controller) ListDocs(ctx *gin.Context) {
 	items, err := c.service.ListDocs(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list docs"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list docs"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -852,7 +894,7 @@ func (c *Controller) ListDocs(ctx *gin.Context) {
 func (c *Controller) CreateDoc(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -864,13 +906,13 @@ func (c *Controller) CreateDoc(ctx *gin.Context) {
 		Tags        []string `json:"tags"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.CreateDoc(ctx, actorID, req.Title, req.Category, req.Summary, req.ReadTimeMin, req.Tags)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create doc"})
+		apierror.Abort(ctx, apierror.InternalError("failed to create doc"))
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -879,7 +921,7 @@ func (c *Controller) CreateDoc(ctx *gin.Context) {
 func (c *Controller) UpdateDoc(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -891,17 +933,17 @@ func (c *Controller) UpdateDoc(ctx *gin.Context) {
 		Tags        []string `json:"tags"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.UpdateDoc(ctx, actorID, ctx.Param("id"), req.Title, req.Category, req.Summary, req.ReadTimeMin, req.Tags)
 	if err != nil {
 		if errors.Is(err, portal.ErrNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "doc not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update doc"})
+		apierror.Abort(ctx, apierror.InternalError("failed to update doc"))
 		return
 	}
 	ctx.JSON(http.StatusOK, item)
@@ -910,16 +952,16 @@ func (c *Controller) UpdateDoc(ctx *gin.Context) {
 func (c *Controller) DeleteDoc(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	if err := c.service.DeleteDoc(ctx, actorID, ctx.Param("id")); err != nil {
 		if errors.Is(err, portal.ErrNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "doc not found"})
+			apierror.Abort(ctx, apierror.ErrPortalNotFound)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete doc"})
+		apierror.Abort(ctx, apierror.InternalError("failed to delete doc"))
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"ok": true})
@@ -928,7 +970,7 @@ func (c *Controller) DeleteDoc(ctx *gin.Context) {
 func (c *Controller) UpsertDomain(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -944,7 +986,7 @@ func (c *Controller) UpsertDomain(ctx *gin.Context) {
 		Weight            int     `json:"weight"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -961,10 +1003,12 @@ func (c *Controller) UpsertDomain(ctx *gin.Context) {
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrDomainNotFound), errors.Is(err, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		case errors.Is(err, domain.ErrDomainNotFound):
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, domain.ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to upsert domain"})
+			apierror.Abort(ctx, apierror.InternalError("failed to upsert domain"))
 		}
 		return
 	}
@@ -974,24 +1018,26 @@ func (c *Controller) UpsertDomain(ctx *gin.Context) {
 func (c *Controller) DeleteDomain(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteDomain(ctx, actorID, domainID); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, ErrDomainHasMailboxes), errors.Is(err, ErrDomainHasChildren):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, ErrDomainHasMailboxes):
+			apierror.Abort(ctx, apierror.ErrAdminDomainHasMailboxes)
+		case errors.Is(err, ErrDomainHasChildren):
+			apierror.Abort(ctx, apierror.ErrAdminDomainHasChildren)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete domain"})
+			apierror.Abort(ctx, apierror.InternalError("failed to delete domain"))
 		}
 		return
 	}
@@ -1002,25 +1048,29 @@ func (c *Controller) DeleteDomain(ctx *gin.Context) {
 func (c *Controller) VerifyDomain(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, ok := parseAdminParamID(ctx, "id")
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	result, err := c.service.VerifyDomain(ctx, actorID, domainID)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrDomainNotFound), errors.Is(err, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
-		case errors.Is(err, domain.ErrProviderAdapterUnavailable), errors.Is(err, domain.ErrInvalidDNSChangeSetRequest):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		case errors.Is(err, domain.ErrDomainNotFound):
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
+		case errors.Is(err, domain.ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(err, domain.ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(err, domain.ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainVerifyFailed)
 		}
 		return
 	}
@@ -1031,19 +1081,19 @@ func (c *Controller) VerifyDomain(ctx *gin.Context) {
 func (c *Controller) CreateDomainProvider(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	var req domain.CreateProviderAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, err := c.service.CreateDomainProvider(ctx, actorID, req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create domain provider"})
+		apierror.Abort(ctx, apierror.InternalError("failed to create domain provider"))
 		return
 	}
 	ctx.JSON(http.StatusCreated, item)
@@ -1052,19 +1102,19 @@ func (c *Controller) CreateDomainProvider(ctx *gin.Context) {
 func (c *Controller) UpdateDomainProvider(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req domain.CreateProviderAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1072,11 +1122,11 @@ func (c *Controller) UpdateDomainProvider(ctx *gin.Context) {
 	if updateErr != nil {
 		switch {
 		case errors.Is(updateErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": updateErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(updateErr, ErrProviderAccountImmutableFieldsLocked):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": updateErr.Error()})
+			apierror.Abort(ctx, apierror.ErrAdminProviderImmutable)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to update domain provider"})
+			apierror.Abort(ctx, apierror.InternalError("failed to update domain provider"))
 		}
 		return
 	}
@@ -1087,24 +1137,24 @@ func (c *Controller) UpdateDomainProvider(ctx *gin.Context) {
 func (c *Controller) DeleteDomainProvider(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	if err := c.service.DeleteDomainProvider(ctx, actorID, providerAccountID); err != nil {
 		switch {
 		case errors.Is(err, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(err, ErrProviderAccountInUse):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrAdminProviderInUse)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete domain provider"})
+			apierror.Abort(ctx, apierror.InternalError("failed to delete domain provider"))
 		}
 		return
 	}
@@ -1115,13 +1165,13 @@ func (c *Controller) DeleteDomainProvider(ctx *gin.Context) {
 func (c *Controller) ValidateDomainProvider(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1129,11 +1179,11 @@ func (c *Controller) ValidateDomainProvider(ctx *gin.Context) {
 	if validateErr != nil {
 		switch {
 		case errors.Is(validateErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": validateErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(validateErr, domain.ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": validateErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": validateErr.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainVerifyFailed)
 		}
 		return
 	}
@@ -1143,7 +1193,7 @@ func (c *Controller) ValidateDomainProvider(ctx *gin.Context) {
 func (c *Controller) ListDomainProviderZones(ctx *gin.Context) {
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1151,11 +1201,11 @@ func (c *Controller) ListDomainProviderZones(ctx *gin.Context) {
 	if listErr != nil {
 		switch {
 		case errors.Is(listErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(listErr, domain.ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainVerifyFailed)
 		}
 		return
 	}
@@ -1165,7 +1215,7 @@ func (c *Controller) ListDomainProviderZones(ctx *gin.Context) {
 func (c *Controller) ListDomainProviderRecords(ctx *gin.Context) {
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1173,11 +1223,11 @@ func (c *Controller) ListDomainProviderRecords(ctx *gin.Context) {
 	if listErr != nil {
 		switch {
 		case errors.Is(listErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(listErr, domain.ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainVerifyFailed)
 		}
 		return
 	}
@@ -1187,7 +1237,7 @@ func (c *Controller) ListDomainProviderRecords(ctx *gin.Context) {
 func (c *Controller) ListDomainProviderChangeSets(ctx *gin.Context) {
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1195,11 +1245,11 @@ func (c *Controller) ListDomainProviderChangeSets(ctx *gin.Context) {
 	if listErr != nil {
 		switch {
 		case errors.Is(listErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
 		case errors.Is(listErr, domain.ErrProviderAdapterUnavailable):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list provider change sets"})
+			apierror.Abort(ctx, apierror.InternalError("failed to list provider change sets"))
 		}
 		return
 	}
@@ -1209,7 +1259,7 @@ func (c *Controller) ListDomainProviderChangeSets(ctx *gin.Context) {
 func (c *Controller) ListDomainProviderVerifications(ctx *gin.Context) {
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1217,11 +1267,13 @@ func (c *Controller) ListDomainProviderVerifications(ctx *gin.Context) {
 	if listErr != nil {
 		switch {
 		case errors.Is(listErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": listErr.Error()})
-		case errors.Is(listErr, domain.ErrProviderAdapterUnavailable), errors.Is(listErr, domain.ErrInvalidDNSChangeSetRequest):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(listErr, domain.ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(listErr, domain.ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
 		default:
-			ctx.JSON(http.StatusBadGateway, gin.H{"message": listErr.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainVerifyFailed)
 		}
 		return
 	}
@@ -1231,31 +1283,37 @@ func (c *Controller) ListDomainProviderVerifications(ctx *gin.Context) {
 func (c *Controller) PreviewDomainProviderChangeSet(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	providerAccountID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider account id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req domain.PreviewProviderChangeSetRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, previewErr := c.service.PreviewDomainProviderChangeSet(ctx, actorID, providerAccountID, ctx.Param("zoneId"), req)
 	if previewErr != nil {
 		switch {
-		case errors.Is(previewErr, domain.ErrProviderAccountNotFound), errors.Is(previewErr, domain.ErrDNSChangeSetNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": previewErr.Error()})
-		case errors.Is(previewErr, domain.ErrProviderAdapterUnavailable), errors.Is(previewErr, domain.ErrInvalidDNSChangeSetRequest), errors.Is(previewErr, domain.ErrUnsupportedDNSRecordType):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": previewErr.Error()})
+		case errors.Is(previewErr, domain.ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(previewErr, domain.ErrDNSChangeSetNotFound):
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetNotFound)
+		case errors.Is(previewErr, domain.ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(previewErr, domain.ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
+		case errors.Is(previewErr, domain.ErrUnsupportedDNSRecordType):
+			apierror.Abort(ctx, apierror.ErrDNSUnsupportedRecordType)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to preview provider change set"})
+			apierror.Abort(ctx, apierror.InternalError("failed to preview provider change set"))
 		}
 		return
 	}
@@ -1265,25 +1323,31 @@ func (c *Controller) PreviewDomainProviderChangeSet(ctx *gin.Context) {
 func (c *Controller) ApplyDomainProviderChangeSet(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	changeSetID, err := strconv.ParseUint(ctx.Param("changeSetId"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid change set id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	item, applyErr := c.service.ApplyDomainProviderChangeSet(ctx, actorID, changeSetID)
 	if applyErr != nil {
 		switch {
-		case errors.Is(applyErr, domain.ErrDNSChangeSetNotFound), errors.Is(applyErr, domain.ErrProviderAccountNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": applyErr.Error()})
-		case errors.Is(applyErr, domain.ErrProviderAdapterUnavailable), errors.Is(applyErr, domain.ErrInvalidDNSChangeSetRequest), errors.Is(applyErr, domain.ErrUnsupportedDNSRecordType):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": applyErr.Error()})
+		case errors.Is(applyErr, domain.ErrDNSChangeSetNotFound):
+			apierror.Abort(ctx, apierror.ErrDNSChangeSetNotFound)
+		case errors.Is(applyErr, domain.ErrProviderAccountNotFound):
+			apierror.Abort(ctx, apierror.ErrProviderAccountNotFound)
+		case errors.Is(applyErr, domain.ErrProviderAdapterUnavailable):
+			apierror.Abort(ctx, apierror.ErrProviderAdapterUnavailable)
+		case errors.Is(applyErr, domain.ErrInvalidDNSChangeSetRequest):
+			apierror.Abort(ctx, apierror.ErrDNSInvalidRequest)
+		case errors.Is(applyErr, domain.ErrUnsupportedDNSRecordType):
+			apierror.Abort(ctx, apierror.ErrDNSUnsupportedRecordType)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to apply provider change set"})
+			apierror.Abort(ctx, apierror.InternalError("failed to apply provider change set"))
 		}
 		return
 	}
@@ -1293,13 +1357,13 @@ func (c *Controller) ApplyDomainProviderChangeSet(ctx *gin.Context) {
 func (c *Controller) ReviewDomainPublication(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	domainID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid domain id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1307,7 +1371,7 @@ func (c *Controller) ReviewDomainPublication(ctx *gin.Context) {
 		Decision string `json:"decision"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -1315,11 +1379,11 @@ func (c *Controller) ReviewDomainPublication(ctx *gin.Context) {
 	if reviewErr != nil {
 		switch {
 		case errors.Is(reviewErr, domain.ErrDomainNotFound):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": reviewErr.Error()})
+			apierror.Abort(ctx, apierror.ErrDomainNotFound)
 		case errors.Is(reviewErr, ErrInvalidDomainReviewDecision):
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": reviewErr.Error()})
+			apierror.Abort(ctx, apierror.ErrAdminInvalidReviewDecision)
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to review domain publication"})
+			apierror.Abort(ctx, apierror.InternalError("failed to review domain publication"))
 		}
 		return
 	}
@@ -1329,7 +1393,7 @@ func (c *Controller) ReviewDomainPublication(ctx *gin.Context) {
 func (c *Controller) ExportUsersCSV(ctx *gin.Context) {
 	items, err := c.service.ListUsers(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to export users"})
+		apierror.Abort(ctx, apierror.InternalError("failed to export users"))
 		return
 	}
 
@@ -1356,7 +1420,7 @@ func (c *Controller) ExportUsersCSV(ctx *gin.Context) {
 func (c *Controller) ExportStatsCSV(ctx *gin.Context) {
 	stats, err := c.service.ExportDailyStats(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to export stats"})
+		apierror.Abort(ctx, apierror.InternalError("failed to export stats"))
 		return
 	}
 

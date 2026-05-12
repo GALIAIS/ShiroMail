@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/middleware"
 	"shiro-email/backend/internal/modules/portal"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type Controller struct {
@@ -28,7 +29,7 @@ func NewController(service *Service, receiver ...InboundReceiver) *Controller {
 func (c *Controller) Trend(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -39,7 +40,7 @@ func (c *Controller) Trend(ctx *gin.Context) {
 
 	items, err := c.service.MessageTrend(ctx, userID, days)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load trend"})
+		apierror.Abort(ctx, apierror.ErrMessageTrendFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -48,7 +49,7 @@ func (c *Controller) Trend(ctx *gin.Context) {
 func (c *Controller) RecentActivity(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -59,7 +60,7 @@ func (c *Controller) RecentActivity(ctx *gin.Context) {
 
 	items, err := c.service.RecentActivity(ctx, userID, limit)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load recent activity"})
+		apierror.Abort(ctx, apierror.ErrMessageListFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -68,7 +69,7 @@ func (c *Controller) RecentActivity(ctx *gin.Context) {
 func (c *Controller) GlobalSearch(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -80,7 +81,7 @@ func (c *Controller) GlobalSearch(ctx *gin.Context) {
 
 	items, err := c.service.GlobalSearch(ctx, userID, query, 20)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to search messages"})
+		apierror.Abort(ctx, apierror.ErrMessageSearchFailed)
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"items": items})
@@ -89,13 +90,13 @@ func (c *Controller) GlobalSearch(ctx *gin.Context) {
 func (c *Controller) ListByMailbox(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, err := strconv.ParseUint(ctx.Param("mailboxId"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -109,13 +110,13 @@ func (c *Controller) ListByMailbox(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 			return
 		case IsNotFound(err):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 			return
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list messages"})
+			apierror.Abort(ctx, apierror.ErrMessageListFailed)
 			return
 		}
 	}
@@ -125,18 +126,18 @@ func (c *Controller) ListByMailbox(ctx *gin.Context) {
 func (c *Controller) Detail(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	mailboxID, err := strconv.ParseUint(ctx.Param("mailboxId"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -144,13 +145,13 @@ func (c *Controller) Detail(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case errors.Is(err, ErrMessageDeleted):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "message deleted"})
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
 		case IsNotFound(err):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load message"})
+			apierror.Abort(ctx, apierror.ErrMessageLoadFailed)
 		}
 		return
 	}
@@ -167,11 +168,15 @@ func (c *Controller) Raw(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-		case errors.Is(err, ErrMessageDeleted), IsNotFound(err), errors.Is(err, ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
+		case errors.Is(err, ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load raw message"})
+			apierror.Abort(ctx, apierror.ErrMessageRawFailed)
 		}
 		return
 	}
@@ -189,11 +194,15 @@ func (c *Controller) ParsedRaw(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-		case errors.Is(err, ErrMessageDeleted), IsNotFound(err), errors.Is(err, ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
+		case errors.Is(err, ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to parse raw message"})
+			apierror.Abort(ctx, apierror.ErrMessageParseFailed)
 		}
 		return
 	}
@@ -204,23 +213,23 @@ func (c *Controller) ParsedRaw(ctx *gin.Context) {
 func (c *Controller) Receive(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 	if c.receiver == nil {
-		ctx.JSON(http.StatusServiceUnavailable, gin.H{"message": "mail ingest unavailable"})
+		apierror.Abort(ctx, apierror.ErrIngestMailUnavailable)
 		return
 	}
 
 	mailboxID, err := strconv.ParseUint(ctx.Param("mailboxId"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
 	var req ReceiveRawMessageRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -228,11 +237,11 @@ func (c *Controller) Receive(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
 		case IsNotFound(err):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to receive raw message"})
+			apierror.Abort(ctx, apierror.ErrMessageReceiveFailed)
 		}
 		return
 	}
@@ -248,7 +257,7 @@ func (c *Controller) Attachment(ctx *gin.Context) {
 
 	attachmentIndex, err := strconv.Atoi(ctx.Param("index"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid attachment index"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -256,11 +265,17 @@ func (c *Controller) Attachment(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, portal.ErrAPIKeyForbidden):
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
-		case errors.Is(err, ErrMessageDeleted), IsNotFound(err), errors.Is(err, ErrAttachmentNotFound), errors.Is(err, ErrMessageContentUnavailable):
-			ctx.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrPortalForbidden)
+		case errors.Is(err, ErrMessageDeleted):
+			apierror.Abort(ctx, apierror.ErrMessageDeleted)
+		case errors.Is(err, ErrAttachmentNotFound):
+			apierror.Abort(ctx, apierror.ErrAttachmentNotFound)
+		case errors.Is(err, ErrMessageContentUnavailable):
+			apierror.Abort(ctx, apierror.ErrMessageContentUnavailable)
+		case IsNotFound(err):
+			apierror.AbortWithMessage(ctx, apierror.ErrMessageNotFound, err.Error())
 		default:
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load attachment"})
+			apierror.Abort(ctx, apierror.ErrMessageAttachmentFailed)
 		}
 		return
 	}
@@ -280,19 +295,19 @@ func currentUserID(ctx *gin.Context) (uint64, bool) {
 func parseMessageScope(ctx *gin.Context) (uint64, uint64, uint64, bool) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return 0, 0, 0, false
 	}
 
 	mailboxID, err := strconv.ParseUint(ctx.Param("mailboxId"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid mailbox id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return 0, 0, 0, false
 	}
 
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid message id"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return 0, 0, 0, false
 	}
 
@@ -335,26 +350,26 @@ type BatchReadRequest struct {
 func (c *Controller) BatchDelete(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	var req BatchDeleteRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "ids required"})
+		apierror.Abort(ctx, apierror.ErrMessageIDsRequired)
 		return
 	}
 	if len(req.IDs) > 100 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "too many ids (max 100)"})
+		apierror.Abort(ctx, apierror.ErrMessageTooManyIDs)
 		return
 	}
 
 	if err := c.service.BatchDeleteMessages(ctx, userID, req.IDs); err != nil {
 		if err.Error() == "message does not belong to user" || err.Error() == "one or more messages not found" {
-			ctx.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrMessageOwnershipFailed)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "batch delete failed"})
+		apierror.Abort(ctx, apierror.ErrMessageBatchDeleteFailed)
 		return
 	}
 
@@ -364,26 +379,26 @@ func (c *Controller) BatchDelete(ctx *gin.Context) {
 func (c *Controller) BatchRead(ctx *gin.Context) {
 	userID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
 	var req BatchReadRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "ids required"})
+		apierror.Abort(ctx, apierror.ErrMessageIDsRequired)
 		return
 	}
 	if len(req.IDs) > 100 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "too many ids (max 100)"})
+		apierror.Abort(ctx, apierror.ErrMessageTooManyIDs)
 		return
 	}
 
 	if err := c.service.BatchSetReadMessages(ctx, userID, req.IDs, req.Read); err != nil {
 		if err.Error() == "message does not belong to user" || err.Error() == "one or more messages not found" {
-			ctx.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			apierror.Abort(ctx, apierror.ErrMessageOwnershipFailed)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "batch read update failed"})
+		apierror.Abort(ctx, apierror.ErrMessageBatchReadFailed)
 		return
 	}
 

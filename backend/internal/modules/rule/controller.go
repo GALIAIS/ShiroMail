@@ -1,9 +1,8 @@
-package rule
+﻿package rule
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"shiro-email/backend/internal/shared/apierror"
 )
 
 type Controller struct {
@@ -17,16 +16,16 @@ func NewController(service *Service) *Controller {
 func (c *Controller) List(ctx *gin.Context) {
 	items, err := c.service.List(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to list rules"})
+		apierror.Abort(ctx, apierror.InternalError("failed to list rules"))
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"items": items})
+	ctx.JSON(200, gin.H{"items": items})
 }
 
 func (c *Controller) Upsert(ctx *gin.Context) {
 	actorID, ok := currentUserID(ctx)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
 		return
 	}
 
@@ -36,7 +35,7 @@ func (c *Controller) Upsert(ctx *gin.Context) {
 		AutoExtend     bool   `json:"autoExtend"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request"})
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
 		return
 	}
 
@@ -47,10 +46,10 @@ func (c *Controller) Upsert(ctx *gin.Context) {
 		AutoExtend:     req.AutoExtend,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to upsert rule"})
+		apierror.Abort(ctx, apierror.InternalError("failed to upsert rule"))
 		return
 	}
-	ctx.JSON(http.StatusOK, item)
+	ctx.JSON(200, item)
 }
 
 func currentUserID(ctx *gin.Context) (uint64, bool) {
