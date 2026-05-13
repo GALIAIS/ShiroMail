@@ -27,7 +27,7 @@ func TestMetricsHandlerIncludesSMTPAndSpoolCounters(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	ctx.Request = req
 
-	MetricsHandler()(ctx)
+	MetricsHandler("")(ctx)
 
 	body := recorder.Body.String()
 	required := []string{
