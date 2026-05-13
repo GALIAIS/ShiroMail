@@ -108,7 +108,7 @@ func TestAdminCanUpdateUserRoles(t *testing.T) {
 func TestAdminCanUpdateUserProfile(t *testing.T) {
 	server, token, _ := newAdminServer(t)
 
-	body := `{"username":"alice-updated","email":"alice-updated@shiro.local","status":"disabled","emailVerified":true,"roles":["admin","user"],"newPassword":"BetterSecret123!"}`
+	body := `{"username":"alice-updated","email":"alice-updated@shiro.local","status":"active","emailVerified":true,"roles":["admin","user"],"newPassword":"BetterSecret123!"}`
 	rr := performJSON(server, http.MethodPut, "/api/v1/admin/users/1", body, token)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200 on user update, got %d: %s", rr.Code, rr.Body.String())
@@ -119,7 +119,7 @@ func TestAdminCanUpdateUserProfile(t *testing.T) {
 	if !strings.Contains(rr.Body.String(), `"email":"alice-updated@shiro.local"`) {
 		t.Fatalf("expected updated email in response: %s", rr.Body.String())
 	}
-	if !strings.Contains(rr.Body.String(), `"status":"disabled"`) {
+	if !strings.Contains(rr.Body.String(), `"status":"active"`) {
 		t.Fatalf("expected updated status in response: %s", rr.Body.String())
 	}
 	if !strings.Contains(rr.Body.String(), `"emailVerified":true`) {
@@ -1319,7 +1319,7 @@ func TestAdminCanManageDocs(t *testing.T) {
 func TestAdminCanCreateWebhookForUser(t *testing.T) {
 	server, token, _ := newAdminServer(t)
 
-	body := `{"userId":1,"name":"ops-events","targetUrl":"https://sandbox.local/hooks/ops-events","events":["message.received","mailbox.released"]}`
+	body := `{"userId":1,"name":"ops-events","targetUrl":"https://sandbox.local/hooks/ops-events","events":["new_message","mailbox_created"]}`
 	rr := performJSON(server, http.MethodPost, "/api/v1/admin/webhooks", body, token)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on admin webhook create, got %d: %s", rr.Code, rr.Body.String())
@@ -1333,7 +1333,7 @@ func TestAdminCanCreateWebhookForUser(t *testing.T) {
 	if !strings.Contains(rr.Body.String(), `"targetUrl":"https://sandbox.local/hooks/ops-events"`) {
 		t.Fatalf("expected created webhook target in response: %s", rr.Body.String())
 	}
-	if !strings.Contains(rr.Body.String(), `"events":["message.received","mailbox.released"]`) {
+	if !strings.Contains(rr.Body.String(), `"events":["new_message","mailbox_created"]`) {
 		t.Fatalf("expected webhook events in response: %s", rr.Body.String())
 	}
 
@@ -1357,7 +1357,7 @@ func TestAdminCanCreateWebhookForUser(t *testing.T) {
 func TestAdminCanUpdateAndToggleWebhookForUser(t *testing.T) {
 	server, token, _ := newAdminServer(t)
 
-	createBody := `{"userId":1,"name":"ops-events","targetUrl":"https://sandbox.local/hooks/ops-events","events":["message.received","mailbox.released"]}`
+	createBody := `{"userId":1,"name":"ops-events","targetUrl":"https://sandbox.local/hooks/ops-events","events":["new_message","mailbox_created"]}`
 	rr := performJSON(server, http.MethodPost, "/api/v1/admin/webhooks", createBody, token)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on admin webhook create, got %d: %s", rr.Code, rr.Body.String())
@@ -1367,7 +1367,7 @@ func TestAdminCanUpdateAndToggleWebhookForUser(t *testing.T) {
 		t.Fatalf("expected webhook id in create response: %s", rr.Body.String())
 	}
 
-	updateBody := `{"name":"ops-events-updated","targetUrl":"https://sandbox.local/hooks/ops-events-updated","events":["message.received"]}`
+	updateBody := `{"name":"ops-events-updated","targetUrl":"https://sandbox.local/hooks/ops-events-updated","events":["new_message"]}`
 	rr = performJSON(server, http.MethodPut, "/api/v1/admin/webhooks/"+webhookID, updateBody, token)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200 on admin webhook update, got %d: %s", rr.Code, rr.Body.String())
