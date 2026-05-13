@@ -570,3 +570,26 @@ type WebhookDeliveryLogRow struct {
 func (WebhookDeliveryLogRow) TableName() string {
 	return "webhook_delivery_logs"
 }
+
+type MailboxTagRow struct {
+	ID        uint64    `gorm:"column:id;primaryKey;autoIncrement"`
+	UserID    uint64    `gorm:"column:user_id"`
+	Name      string    `gorm:"column:name"`
+	Color     string    `gorm:"column:color"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+func (MailboxTagRow) TableName() string {
+	return "mailbox_tags"
+}
+
+type MailboxTagBindingRow struct {
+	ID        uint64    `gorm:"column:id;primaryKey;autoIncrement"`
+	MailboxID uint64    `gorm:"column:mailbox_id"`
+	TagID     uint64    `gorm:"column:tag_id"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+func (MailboxTagBindingRow) TableName() string {
+	return "mailbox_tag_bindings"
+}

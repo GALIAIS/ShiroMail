@@ -15,6 +15,8 @@ const translation = {
     search: "Search",
     noData: "No matching options",
     realTime: "Live data",
+    collapse: "Collapse",
+    expand: "Expand",
     syncing: "Syncing",
     example: "Current view",
     preview: "Console view",

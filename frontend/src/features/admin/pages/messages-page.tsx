@@ -12,16 +12,20 @@ import {
 } from "@/components/layout/workspace-ui";
 import { decodeMimeHeaderValue } from "@/lib/mail-header";
 import { paginateItems } from "@/lib/pagination";
+import { useURLPagination } from "@/hooks/use-url-pagination";
 import { fetchAdminMessages } from "../api";
 import { formatDateTime } from "../../user/pages/shared";
 
-const ADMIN_MESSAGES_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 export function AdminMessagesPage() {
   const messagesQuery = useQuery({ queryKey: ["admin-messages"], queryFn: fetchAdminMessages });
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<"all" | "new" | "seen">("all");
-  const [messagesPage, setMessagesPage] = useState(1);
+  const { page, pageSize, setPage, setPageSize, resetPage } = useURLPagination({
+    defaultPage: 1,
+    defaultPageSize: 20,
+  });
   const statusOptions = [
     { value: "all", label: "全部状态", keywords: ["all"] },
     { value: "new", label: "new" },
@@ -37,8 +41,8 @@ export function AdminMessagesPage() {
     });
   }, [keyword, messagesQuery.data, status]);
   const paginatedMessages = useMemo(
-    () => paginateItems(filtered, messagesPage, ADMIN_MESSAGES_PAGE_SIZE),
-    [filtered, messagesPage],
+    () => paginateItems(filtered, page, pageSize),
+    [filtered, page, pageSize],
   );
 
   return (
@@ -48,7 +52,10 @@ export function AdminMessagesPage() {
           <WorkspaceField label="搜索">
             <Input
               className="h-9"
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={(event) => {
+                setKeyword(event.target.value);
+                resetPage();
+              }}
               placeholder="搜索主题 / 发件人 / 收件邮箱"
               value={keyword}
             />
@@ -58,7 +65,10 @@ export function AdminMessagesPage() {
               ariaLabel="消息状态"
               emptyLabel="没有匹配的状态"
               value={status}
-              onValueChange={(value) => setStatus(value as "all" | "new" | "seen")}
+              onValueChange={(value) => {
+                setStatus(value as "all" | "new" | "seen");
+                resetPage();
+              }}
               options={statusOptions}
               placeholder="全部状态"
               searchPlaceholder="搜索状态"
@@ -83,9 +93,12 @@ export function AdminMessagesPage() {
             ))}
             <PaginationControls
               itemLabel="消息"
-              onPageChange={setMessagesPage}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
               page={paginatedMessages.page}
-              pageSize={ADMIN_MESSAGES_PAGE_SIZE}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              showPageSizeSelector
               total={paginatedMessages.total}
               totalPages={paginatedMessages.totalPages}
             />

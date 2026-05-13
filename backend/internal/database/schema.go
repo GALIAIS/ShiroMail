@@ -19,14 +19,23 @@ var createIndexPattern = regexp.MustCompile("(?is)^CREATE\\s+(?:(?:UNIQUE|FULLTE
 var alterAddColumnPattern = regexp.MustCompile("(?is)^ALTER\\s+TABLE\\s+`?([a-zA-Z0-9_]+)`?\\s+ADD\\s+COLUMN\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?`?([a-zA-Z0-9_]+)`?\\s+")
 
 func EnsureSchema(ctx context.Context, db *gorm.DB) error {
-	body, err := migrationFiles.ReadFile("migrations/000001_init_schema.sql")
+	entries, err := migrationFiles.ReadDir("migrations")
 	if err != nil {
-		return fmt.Errorf("read schema migration: %w", err)
+		return fmt.Errorf("read migrations directory: %w", err)
 	}
 
-	for _, stmt := range splitSQLStatements(string(body)) {
-		if err := applySchemaStatement(ctx, db, stmt); err != nil {
-			return err
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		body, err := migrationFiles.ReadFile("migrations/" + entry.Name())
+		if err != nil {
+			return fmt.Errorf("read migration %s: %w", entry.Name(), err)
+		}
+		for _, stmt := range splitSQLStatements(string(body)) {
+			if err := applySchemaStatement(ctx, db, stmt); err != nil {
+				return err
+			}
 		}
 	}
 

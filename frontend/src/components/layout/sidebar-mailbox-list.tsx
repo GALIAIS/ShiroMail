@@ -9,32 +9,46 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { fetchDashboard } from "@/features/user/api";
+import { cn } from "@/lib/utils";
+import { ChevronDown, Plus } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
-const MAX_QUICK_MAILBOXES = 3;
+const MAX_COLLAPSED = 3;
+const MAX_EXPANDED = 10;
 
 export function SidebarMailboxList() {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
   const { data } = useQuery({
     queryKey: ["user-dashboard"],
     queryFn: fetchDashboard,
     staleTime: 60_000,
   });
 
-  const mailboxes = (data?.mailboxes ?? [])
-    .filter((m) => m.status === "active")
-    .slice(0, MAX_QUICK_MAILBOXES);
-
+  const allMailboxes = (data?.mailboxes ?? []).filter((m) => m.status === "active");
   const unreadCounts = data?.unreadCounts ?? {};
+  const limit = expanded ? MAX_EXPANDED : MAX_COLLAPSED;
+  const mailboxes = allMailboxes.slice(0, limit);
+  const hasMore = allMailboxes.length > MAX_COLLAPSED;
 
-  if (!mailboxes.length) return null;
+  if (!allMailboxes.length) return null;
 
   return (
     <SidebarGroup className="px-2 py-2">
-      <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
-        {t("sidebar.recentMailboxes")}
-      </SidebarGroupLabel>
+      <div className="flex items-center justify-between group-data-[collapsible=icon]:hidden">
+        <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
+          {t("sidebar.recentMailboxes")}
+        </SidebarGroupLabel>
+        <NavLink
+          className="mr-2 flex size-5 items-center justify-center rounded-md text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          title={t("nav.user.mailboxes")}
+          to="/dashboard/mailboxes"
+        >
+          <Plus className="size-3.5" />
+        </NavLink>
+      </div>
       <SidebarGroupContent>
         <SidebarMenu className="gap-1">
           {mailboxes.map((mailbox) => {
@@ -65,6 +79,18 @@ export function SidebarMailboxList() {
               </SidebarMenuItem>
             );
           })}
+          {hasMore ? (
+            <SidebarMenuItem>
+              <button
+                className="flex h-7 w-full items-center justify-center gap-1 rounded-lg text-[11px] text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden"
+                onClick={() => setExpanded((v) => !v)}
+                type="button"
+              >
+                <ChevronDown className={cn("size-3 transition-transform", expanded && "rotate-180")} />
+                <span>{expanded ? t("common.collapse", "收起") : `+${allMailboxes.length - MAX_COLLAPSED}`}</span>
+              </button>
+            </SidebarMenuItem>
+          ) : null}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

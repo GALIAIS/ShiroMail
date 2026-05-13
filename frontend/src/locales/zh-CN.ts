@@ -15,6 +15,8 @@ const translation = {
     search: "搜索",
     noData: "暂无匹配项",
     realTime: "实时数据",
+    collapse: "收起",
+    expand: "展开",
     syncing: "同步中",
     example: "当前视图",
     preview: "控制台视图",
