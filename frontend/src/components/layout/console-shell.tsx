@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { createRoutePrefetchHandlers } from "@/app/prefetch-route";
 import { cn } from "@/lib/utils";
-import { LogOut, RefreshCw, Search } from "lucide-react";
+import { LogOut, RefreshCw, Search, ChevronDown } from "lucide-react";
 import { type CSSProperties, type ReactNode, useCallback, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import type { ConsoleNavItem, ConsoleNavSection } from "../../lib/console-nav";
@@ -125,48 +125,12 @@ export function ConsoleShell({
 
         <SidebarContent>
           {sections.map((section, sectionIndex) => (
-            <div key={section.title ?? sectionIndex}>
-              {sectionIndex > 0 ? (
-                <SidebarSeparator className="mx-auto my-2 w-[calc(100%-1.5rem)] group-data-[collapsible=icon]:w-6" />
-              ) : null}
-              <SidebarGroup className="px-2 py-2">
-                {section.title ? (
-                  <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
-                    {section.title}
-                  </SidebarGroupLabel>
-                ) : null}
-                <SidebarGroupContent>
-                  <SidebarMenu className="gap-1.5">
-                    {section.items.map((item) => {
-                      const Icon = item.icon;
-                      const active = isRouteActive(location.pathname, item.to);
-                      const label = t(item.labelKey);
-                      const prefetchHandlers = createRoutePrefetchHandlers(item.to);
-
-                      return (
-                        <SidebarMenuItem key={item.to}>
-                        <SidebarMenuButton
-                          asChild
-                          className={cn(
-                            "h-10 rounded-xl px-3 text-sm font-medium group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:[&_svg]:translate-x-[5px]",
-                            active && "bg-sidebar-accent text-sidebar-accent-foreground shadow-none",
-                          )}
-                          isActive={active}
-                          size="default"
-                          tooltip={label}
-                          >
-                            <NavLink {...prefetchHandlers} to={item.to}>
-                              <Icon className="size-4" />
-                              <span className="truncate">{label}</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </div>
+            <CollapsibleNavSection
+              key={section.titleKey ?? section.title ?? sectionIndex}
+              section={section}
+              sectionIndex={sectionIndex}
+              pathname={location.pathname}
+            />
           ))}
         </SidebarContent>
 
@@ -263,7 +227,7 @@ export function ConsoleShell({
             </div>
           </header>
 
-          <div key={location.pathname} id="main-content" className="page-transition-fade mx-auto flex max-w-[1360px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div key={location.pathname} id="main-content" className="page-transition-fade mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </div>
@@ -276,5 +240,88 @@ export function ConsoleShell({
         shortcuts={kbShortcuts.shortcuts}
       />
     </SidebarProvider>
+  );
+}
+
+function CollapsibleNavSection({
+  section,
+  sectionIndex,
+  pathname,
+}: {
+  section: ConsoleNavSection;
+  sectionIndex: number;
+  pathname: string;
+}) {
+  const { t } = useTranslation();
+  const hasActiveChild = section.items.some((item) => isRouteActive(pathname, item.to));
+  const [open, setOpen] = useState(section.defaultOpen !== false || hasActiveChild);
+
+  const sectionLabel = section.titleKey ? t(section.titleKey) : section.title;
+
+  return (
+    <div>
+      {sectionIndex > 0 ? (
+        <SidebarSeparator className="mx-auto my-2 w-[calc(100%-1.5rem)] group-data-[collapsible=icon]:w-6" />
+      ) : null}
+      <SidebarGroup className="px-2 py-2">
+        {sectionLabel ? (
+          section.collapsible ? (
+            <button
+              className="flex w-full items-center justify-between px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden"
+              onClick={() => setOpen((v) => !v)}
+              type="button"
+            >
+              <span>{sectionLabel}</span>
+              <ChevronDown
+                className={cn(
+                  "size-3 transition-transform duration-200",
+                  !open && "-rotate-90",
+                )}
+              />
+            </button>
+          ) : (
+            <SidebarGroupLabel className="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
+              {sectionLabel}
+            </SidebarGroupLabel>
+          )
+        ) : null}
+        <SidebarGroupContent
+          className={cn(
+            "transition-all duration-200 overflow-hidden",
+            section.collapsible && !open && "max-h-0 opacity-0 group-data-[collapsible=icon]:max-h-none group-data-[collapsible=icon]:opacity-100",
+            (!section.collapsible || open) && "max-h-[500px] opacity-100",
+          )}
+        >
+          <SidebarMenu className="gap-1.5">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const active = isRouteActive(pathname, item.to);
+              const label = t(item.labelKey);
+              const prefetchHandlers = createRoutePrefetchHandlers(item.to);
+
+              return (
+                <SidebarMenuItem key={item.to}>
+                  <SidebarMenuButton
+                    asChild
+                    className={cn(
+                      "h-10 rounded-xl px-3 text-sm font-medium group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:[&_svg]:translate-x-[5px]",
+                      active && "bg-sidebar-accent text-sidebar-accent-foreground shadow-none",
+                    )}
+                    isActive={active}
+                    size="default"
+                    tooltip={label}
+                  >
+                    <NavLink {...prefetchHandlers} to={item.to}>
+                      <Icon className="size-4" />
+                      <span className="truncate">{label}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </div>
   );
 }

@@ -33,6 +33,9 @@ export type ConsoleNavItem = {
 
 export type ConsoleNavSection = {
   title?: string;
+  titleKey?: string;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
   items: ConsoleNavItem[];
 };
 
@@ -46,24 +49,45 @@ export const userTopNav: ConsoleNavItem[] = [
 
 export const userSidebarSections: ConsoleNavSection[] = [
   {
+    titleKey: "sidebar.sections.overview",
     items: [
       { labelKey: "nav.user.dashboard", to: "/dashboard", icon: LayoutGrid },
-      { labelKey: "nav.user.mailboxes", to: "/dashboard/mailboxes", icon: Inbox },
       { labelKey: "nav.user.notices", to: "/dashboard/notices", icon: Megaphone },
       { labelKey: "nav.user.feedback", to: "/dashboard/feedback", icon: LifeBuoy },
     ],
   },
   {
+    titleKey: "sidebar.sections.mailbox",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { labelKey: "nav.user.mailboxes", to: "/dashboard/mailboxes", icon: Inbox },
+      { labelKey: "nav.user.extractors", to: "/dashboard/extractors", icon: SlidersHorizontal },
+    ],
+  },
+  {
+    titleKey: "sidebar.sections.integration",
+    collapsible: true,
+    defaultOpen: true,
     items: [
       { labelKey: "nav.user.apiKeys", to: "/dashboard/api-keys", icon: KeyRound },
-      { labelKey: "nav.user.domains", to: "/dashboard/domains", icon: Globe },
-      { labelKey: "nav.user.dns", to: "/dashboard/dns", icon: Network },
-      { labelKey: "nav.user.extractors", to: "/dashboard/extractors", icon: SlidersHorizontal },
       { labelKey: "nav.user.webhooks", to: "/dashboard/webhooks", icon: Webhook },
       { labelKey: "nav.user.docs", to: "/dashboard/docs", icon: BookOpen },
     ],
   },
   {
+    titleKey: "sidebar.sections.domain",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      { labelKey: "nav.user.domains", to: "/dashboard/domains", icon: Globe },
+      { labelKey: "nav.user.dns", to: "/dashboard/dns", icon: Network },
+    ],
+  },
+  {
+    titleKey: "sidebar.sections.account",
+    collapsible: true,
+    defaultOpen: false,
     items: [
       { labelKey: "nav.user.billing", to: "/dashboard/billing", icon: CreditCard },
       { labelKey: "nav.user.balance", to: "/dashboard/balance", icon: Wallet },
@@ -84,28 +108,56 @@ export const adminTopNav: ConsoleNavItem[] = [
 
 export const adminSidebarSections: ConsoleNavSection[] = [
   {
+    titleKey: "sidebar.sections.overview",
     items: [
       { labelKey: "nav.admin.overview", to: "/admin", icon: LayoutGrid },
       { labelKey: "nav.admin.monitoring", to: "/admin/monitoring", icon: Monitor },
-      { labelKey: "nav.admin.users", to: "/admin/users", icon: Users },
-      { labelKey: "nav.admin.messages", to: "/admin/messages", icon: MessageSquareText },
-      { labelKey: "nav.admin.mailboxes", to: "/admin/mailboxes", icon: Inbox },
-      { labelKey: "nav.admin.domains", to: "/admin/domains", icon: Globe },
-      { labelKey: "nav.admin.dns", to: "/admin/dns", icon: Network },
-      { labelKey: "nav.admin.extractors", to: "/admin/extractors", icon: SlidersHorizontal },
     ],
   },
   {
+    titleKey: "sidebar.sections.userManagement",
+    collapsible: true,
+    defaultOpen: true,
     items: [
-      { labelKey: "nav.admin.rules", to: "/admin/rules", icon: SlidersHorizontal },
-      { labelKey: "nav.admin.apiKeys", to: "/admin/api-keys", icon: KeyRound },
-      { labelKey: "nav.admin.webhooks", to: "/admin/webhooks", icon: Webhook },
-      { labelKey: "nav.admin.notices", to: "/admin/notices", icon: Bell },
-      { labelKey: "nav.admin.jobs", to: "/admin/jobs", icon: Radio },
+      { labelKey: "nav.admin.users", to: "/admin/users", icon: Users },
       { labelKey: "nav.admin.auditLogs", to: "/admin/audit-logs", icon: ScrollText },
     ],
   },
   {
+    titleKey: "sidebar.sections.mailSystem",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { labelKey: "nav.admin.mailboxes", to: "/admin/mailboxes", icon: Inbox },
+      { labelKey: "nav.admin.messages", to: "/admin/messages", icon: MessageSquareText },
+      { labelKey: "nav.admin.extractors", to: "/admin/extractors", icon: SlidersHorizontal },
+      { labelKey: "nav.admin.rules", to: "/admin/rules", icon: SlidersHorizontal },
+    ],
+  },
+  {
+    titleKey: "sidebar.sections.infrastructure",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      { labelKey: "nav.admin.domains", to: "/admin/domains", icon: Globe },
+      { labelKey: "nav.admin.dns", to: "/admin/dns", icon: Network },
+      { labelKey: "nav.admin.jobs", to: "/admin/jobs", icon: Radio },
+    ],
+  },
+  {
+    titleKey: "sidebar.sections.developer",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      { labelKey: "nav.admin.apiKeys", to: "/admin/api-keys", icon: KeyRound },
+      { labelKey: "nav.admin.webhooks", to: "/admin/webhooks", icon: Webhook },
+      { labelKey: "nav.admin.notices", to: "/admin/notices", icon: Bell },
+    ],
+  },
+  {
+    titleKey: "sidebar.sections.system",
+    collapsible: true,
+    defaultOpen: false,
     items: [
       { labelKey: "nav.admin.docs", to: "/admin/docs", icon: FileText },
       { labelKey: "nav.admin.account", to: "/admin/account", icon: UserRound },

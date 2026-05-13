@@ -1,0 +1,118 @@
+x-backend-env: &backend-env
+  APP_ENV: production
+  APP_PORT: 8080
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://${SITE_DOMAIN:-localhost}}
+  MYSQL_DSN: ${MYSQL_DSN:-root:${MYSQL_ROOT_PASSWORD:-root}@tcp(mysql:3306)/shiro_email?parseTime=true}
+  REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+  JWT_SECRET: ${JWT_SECRET}
+  METRICS_TOKEN: ${METRICS_TOKEN:-}
+  MAIL_STORAGE_PATH: /app/data/mail
+
+services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${SSL_EMAIL:-admin@${SITE_DOMAIN:-localhost}}
+      - --certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --log.level=WARN
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme_data:/acme
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shiro_email}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mysql_data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "1.0"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass "${REDIS_PASSWORD}"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  app:
+    image: ${SHIROMAIL_IMAGE:-ghcr.io/galiais/shiromail:latest}
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.shiromail.rule=Host(`${SITE_DOMAIN}`)
+      - traefik.http.routers.shiromail.tls.certresolver=letsencrypt
+      - traefik.http.services.shiromail.loadbalancer.server.port=80
+    ports:
+      - "${SMTP_PORT:-25}:2525"
+    volumes:
+      - mail_data:/app/data/mail
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  worker:
+    image: ${SHIROMAIL_IMAGE:-ghcr.io/galiais/shiromail:latest}
+    command: ["shiro-worker"]
+    restart: unless-stopped
+    environment: *backend-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - mail_data:/app/data/mail
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+volumes:
+  mysql_data:
+  redis_data:
+  mail_data:
+  acme_data:

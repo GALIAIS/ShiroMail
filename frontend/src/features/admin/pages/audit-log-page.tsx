@@ -11,10 +11,11 @@ import {
   WorkspacePage,
   WorkspacePanel,
 } from "@/components/layout/workspace-ui";
+import { useURLPagination } from "@/hooks/use-url-pagination";
 import { fetchAdminAuditPaginated } from "../api";
 import { formatDateTime } from "../../user/pages/shared";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 const actionOptions = [
   { label: "All actions", value: "" },
@@ -40,15 +41,18 @@ const actionOptions = [
 
 export function AdminAuditLogPage() {
   const { t } = useTranslation();
-  const [page, setPage] = useState(1);
+  const { page, pageSize, setPage, setPageSize, resetPage } = useURLPagination({
+    defaultPage: 1,
+    defaultPageSize: 20,
+  });
   const [actionFilter, setActionFilter] = useState("");
 
   const auditQuery = useQuery({
-    queryKey: ["admin-audit-paginated", page, actionFilter],
+    queryKey: ["admin-audit-paginated", page, pageSize, actionFilter],
     queryFn: () =>
       fetchAdminAuditPaginated({
         page,
-        pageSize: PAGE_SIZE,
+        pageSize,
         action: actionFilter,
       }),
   });
@@ -56,7 +60,7 @@ export function AdminAuditLogPage() {
   const result = auditQuery.data;
   const items = result?.items ?? [];
   const total = result?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const isRefreshing = auditQuery.isRefetching;
 
   return (
@@ -72,7 +76,7 @@ export function AdminAuditLogPage() {
               value={actionFilter}
               onChange={(event) => {
                 setActionFilter(event.target.value);
-                setPage(1);
+                resetPage();
               }}
             >
               {actionOptions.map((option) => (
@@ -156,10 +160,14 @@ export function AdminAuditLogPage() {
             <PaginationControls
               itemLabel={t("audit.itemLabel")}
               page={page}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              showPageSizeSelector
+              showQuickJumper
               total={total}
               totalPages={totalPages}
               onPageChange={setPage}
+              onPageSizeChange={setPageSize}
             />
           </div>
         ) : (

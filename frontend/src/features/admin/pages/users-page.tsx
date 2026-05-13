@@ -26,6 +26,7 @@ import {
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { paginateItems } from "@/lib/pagination";
+import { useURLPagination } from "@/hooks/use-url-pagination";
 import {
   batchAdminUserAction,
   deleteAdminUser,
@@ -42,7 +43,8 @@ const STATUS_OPTIONS = [
   { value: "disabled", label: "停用" },
 ] as const;
 
-const ADMIN_USERS_PAGE_SIZE = 10;
+const ADMIN_USERS_PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 type UserEditForm = {
   username: string;
@@ -71,9 +73,12 @@ export function AdminUsersPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [usersPage, setUsersPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const { confirm, ConfirmDialog } = useConfirm();
+  const { page: usersPage, pageSize: usersPageSize, setPage: setUsersPage, setPageSize: setUsersPageSize } = useURLPagination({
+    defaultPage: 1,
+    defaultPageSize: ADMIN_USERS_PAGE_SIZE,
+  });
   const [formState, setFormState] = useState<UserEditForm>({
     username: "",
     email: "",
@@ -88,8 +93,8 @@ export function AdminUsersPage() {
   const adminCount = users.filter((user) => user.roles.includes("admin")).length;
   const mailboxCount = users.reduce((sum, user) => sum + user.mailboxes, 0);
   const paginatedUsers = useMemo(
-    () => paginateItems(users, usersPage, ADMIN_USERS_PAGE_SIZE),
-    [users, usersPage],
+    () => paginateItems(users, usersPage, usersPageSize),
+    [users, usersPage, usersPageSize],
   );
 
   // Batch selection helpers
@@ -437,8 +442,11 @@ export function AdminUsersPage() {
             <PaginationControls
               itemLabel="用户"
               onPageChange={setUsersPage}
+              onPageSizeChange={setUsersPageSize}
               page={paginatedUsers.page}
-              pageSize={ADMIN_USERS_PAGE_SIZE}
+              pageSize={usersPageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              showPageSizeSelector
               total={paginatedUsers.total}
               totalPages={paginatedUsers.totalPages}
             />
