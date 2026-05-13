@@ -1,11 +1,14 @@
 package message
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"shiro-email/backend/internal/middleware"
@@ -403,4 +406,54 @@ func (c *Controller) BatchRead(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (c *Controller) ExportMailbox(ctx *gin.Context) {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		apierror.Abort(ctx, apierror.ErrUnauthorized)
+		return
+	}
+
+	mailboxID, err := strconv.ParseUint(ctx.Param("mailboxId"), 10, 64)
+	if err != nil {
+		apierror.Abort(ctx, apierror.ErrInvalidRequest)
+		return
+	}
+
+	items, err := c.service.ListByMailbox(ctx, userID, mailboxID, currentAPIKeyArgs(ctx)...)
+	if err != nil {
+		apierror.Abort(ctx, apierror.ErrMessageListFailed)
+		return
+	}
+
+	format := ctx.DefaultQuery("format", "json")
+	switch format {
+	case "csv":
+		ctx.Header("Content-Type", "text/csv; charset=utf-8")
+		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="mailbox_%d_messages.csv"`, mailboxID))
+		ctx.Writer.WriteHeader(http.StatusOK)
+
+		writer := csvWriter(ctx.Writer)
+		_ = writer.Write([]string{"id", "from", "to", "subject", "received_at", "size_bytes", "has_attachments"})
+		for _, item := range items {
+			_ = writer.Write([]string{
+				strconv.FormatUint(item.ID, 10),
+				item.FromAddr,
+				item.ToAddr,
+				item.Subject,
+				item.ReceivedAt.Format(time.RFC3339),
+				strconv.FormatInt(item.SizeBytes, 10),
+				strconv.FormatBool(item.HasAttachments),
+			})
+		}
+		writer.Flush()
+	default:
+		ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="mailbox_%d_messages.json"`, mailboxID))
+		ctx.JSON(http.StatusOK, gin.H{"mailboxId": mailboxID, "count": len(items), "messages": items})
+	}
+}
+
+func csvWriter(w io.Writer) *csv.Writer {
+	return csv.NewWriter(w)
 }

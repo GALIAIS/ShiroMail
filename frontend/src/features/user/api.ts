@@ -609,6 +609,11 @@ export async function fetchMailboxMessages(mailboxId: number, query?: string) {
   return data.items.map(normalizeMailboxMessageSummary);
 }
 
+export function getMailboxExportURL(mailboxId: number, format: "json" | "csv" = "json") {
+  const baseURL = http.defaults.baseURL ?? "/api/v1";
+  return `${baseURL}/mailboxes/${mailboxId}/messages/export?format=${format}`;
+}
+
 export async function fetchMailboxMessageDetail(mailboxId: number, messageId: number) {
   const { data } = await http.get<MailboxMessageWire>(`/mailboxes/${mailboxId}/messages/${messageId}`);
   return normalizeMailboxMessage(data);

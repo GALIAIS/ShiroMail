@@ -30,7 +30,8 @@ import type {
   MailboxMessageSummary,
   MessageExtractionResult,
 } from "../api";
-import { downloadMailboxMessageRaw } from "../api";
+import { downloadMailboxMessageRaw, getMailboxExportURL } from "../api";
+import { useAuthStore } from "@/lib/auth-store";
 import { MetaCard, SecurityCard, ReceivedPathCard, ExtractionsCard } from "./mailbox-message-info-cards";
 import { MessageContentCard } from "./mailbox-message-content";
 import { AttachmentsCard } from "./mailbox-message-attachments";
@@ -303,6 +304,18 @@ function MailboxActions({
       >
         <Trash2 className="size-4" />
         {selectedMailbox.status === "released" ? "已释放" : "释放邮箱"}
+      </Button>
+      <Button
+        onClick={() => {
+          const token = useAuthStore.getState().accessToken;
+          const url = `${getMailboxExportURL(selectedMailbox.id, "json")}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+          window.open(url, "_blank");
+        }}
+        size="sm"
+        variant="outline"
+      >
+        <Download className="size-4" />
+        导出
       </Button>
       <Badge className="rounded-full" variant="outline">
         <Clock3 className="mr-1 size-3.5" />
