@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/lib/auth-store";
 import { useConfirm } from "@/hooks/use-confirm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   WorkspaceEmpty,
   WorkspaceField,
   WorkspaceListRow,
@@ -27,9 +35,11 @@ import {
 import { getAPIErrorMessage } from "@/lib/http";
 import { paginateItems } from "@/lib/pagination";
 import { useURLPagination } from "@/hooks/use-url-pagination";
+import { KeyRound, Mail, ScrollText, Webhook } from "lucide-react";
 import {
   batchAdminUserAction,
   deleteAdminUser,
+  fetchAdminUserDetail,
   fetchAdminUsers,
   getExportUsersURL,
   updateAdminUser,
@@ -197,6 +207,15 @@ export function AdminUsersPage() {
       batchMutation.mutate({ ids, action });
     }
   }
+
+  const [previewUserId, setPreviewUserId] = useState<number | null>(null);
+  const previewQuery = useQuery({
+    queryKey: ["admin-user-detail", previewUserId],
+    queryFn: () => fetchAdminUserDetail(previewUserId!),
+    enabled: previewUserId !== null && previewUserId > 0,
+    staleTime: 30_000,
+  });
+  const previewUser = previewQuery.data ?? null;
 
   function openEditDialog(user: AdminUser) {
     setSelectedUser(user);
@@ -405,7 +424,7 @@ export function AdminUsersPage() {
                         <>
                           <span className="rounded-full border border-border/60 px-2 py-1">{user.roles.join(", ")}</span>
                           <span>{user.mailboxes} 个邮箱</span>
-                          <Button onClick={() => navigate(`/admin/users/${user.id}`)} size="sm" variant="ghost">
+                          <Button onClick={() => setPreviewUserId(user.id)} size="sm" variant="ghost">
                             查看
                           </Button>
                           <Button onClick={() => openEditDialog(user)} size="sm" variant="outline">
@@ -492,6 +511,134 @@ export function AdminUsersPage() {
           </div>
         )}
       </WorkspacePanel>
+
+      <Sheet open={previewUserId !== null} onOpenChange={(open) => { if (!open) setPreviewUserId(null); }}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{previewUser?.username ?? "加载中..."}</SheetTitle>
+            <SheetDescription>{previewUser?.email ?? ""}</SheetDescription>
+          </SheetHeader>
+          {previewQuery.isLoading ? (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">正在加载用户详情...</div>
+          ) : previewUser ? (
+            <div className="space-y-5 px-4 pb-6">
+              <div className="flex flex-wrap items-center gap-2">
+                {previewUser.roles.map((role) => (
+                  <Badge className="rounded-full" key={role} variant="outline">{role}</Badge>
+                ))}
+                <Badge className="rounded-full" variant={previewUser.status === "active" ? "default" : "destructive"}>
+                  {previewUser.status}
+                </Badge>
+                {previewUser.emailVerified && (
+                  <Badge className="rounded-full" variant="outline">已验证</Badge>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Mail className="size-4" />
+                  邮箱 ({previewUser.mailboxes.length})
+                </div>
+                {previewUser.mailboxes.length ? (
+                  <ul className="space-y-1.5">
+                    {previewUser.mailboxes.slice(0, 8).map((mb) => (
+                      <li key={mb.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+                        <span className="font-medium">{mb.address}</span>
+                        <Badge variant={mb.status === "active" ? "secondary" : "outline"} className="rounded-full text-xs">
+                          {mb.status}
+                        </Badge>
+                      </li>
+                    ))}
+                    {previewUser.mailboxes.length > 8 && (
+                      <li className="text-xs text-muted-foreground px-3">还有 {previewUser.mailboxes.length - 8} 个邮箱...</li>
+                    )}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">暂无邮箱</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Webhook className="size-4" />
+                  Webhook ({previewUser.webhooks.length})
+                </div>
+                {previewUser.webhooks.length ? (
+                  <ul className="space-y-1.5">
+                    {previewUser.webhooks.slice(0, 5).map((wh) => (
+                      <li key={wh.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+                        <span className="truncate max-w-[200px]">{wh.name}</span>
+                        <Badge variant={wh.enabled ? "secondary" : "outline"} className="rounded-full text-xs">
+                          {wh.enabled ? "启用" : "停用"}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">暂无 Webhook</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <KeyRound className="size-4" />
+                  API Key ({previewUser.apiKeys.length})
+                </div>
+                {previewUser.apiKeys.length ? (
+                  <ul className="space-y-1.5">
+                    {previewUser.apiKeys.slice(0, 5).map((key) => (
+                      <li key={key.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+                        <span>{key.name}</span>
+                        <code className="text-xs text-muted-foreground">{key.keyPreview}</code>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">暂无 API Key</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ScrollText className="size-4" />
+                  最近操作 ({previewUser.auditLog.length})
+                </div>
+                {previewUser.auditLog.length ? (
+                  <ul className="space-y-1.5">
+                    {previewUser.auditLog.slice(0, 6).map((log) => (
+                      <li key={log.id} className="rounded-lg border border-border/60 px-3 py-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{log.action}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{log.resourceType} · {log.resourceId}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">暂无操作记录</p>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    navigate(`/admin/users/${previewUserId}`);
+                    setPreviewUserId(null);
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                >
+                  查看完整详情
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">无法加载用户详情</div>
+          )}
+        </SheetContent>
+      </Sheet>
     </WorkspacePage>
   );
 }

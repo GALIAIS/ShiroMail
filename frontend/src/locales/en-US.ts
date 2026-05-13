@@ -626,6 +626,11 @@ const translation = {
     markAllRead: "Mark all as read",
     clearAll: "Clear all",
     newMessage: "New message received",
+    enable: "Enable notifications",
+    enabled: "Notifications enabled",
+    denied: "Notifications blocked by browser. Please allow in browser settings.",
+    newEmail: "New email",
+    newEmailBody: "Received email from {{from}}",
   },
   adminOverview: {
     badge: "Live summary",
@@ -951,6 +956,8 @@ const translation = {
     assignTag: "Assign Tag",
     noTags: "No tags yet",
     confirmDelete: "Delete this tag? Associated mailboxes will be unbound automatically.",
+    filterAll: "All",
+    manageTags: "Manage Tags",
   },
 } as const;
 

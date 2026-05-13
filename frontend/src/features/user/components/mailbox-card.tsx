@@ -4,6 +4,7 @@ import { Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { MailboxItem } from "../api";
+import { MailboxTagBadge, MailboxTagSelector } from "./mailbox-tag-manager";
 
 type Props = {
   mailbox: MailboxItem;
@@ -11,9 +12,10 @@ type Props = {
   onSelect: (mailboxId: number) => void;
   formatDate: (value: string) => string;
   formatRemainingHours: (value: string) => string;
+  tags?: Array<{ name: string; color: string }>;
 };
 
-export function MailboxCard({ mailbox, active, onSelect, formatDate, formatRemainingHours }: Props) {
+export function MailboxCard({ mailbox, active, onSelect, formatDate, formatRemainingHours, tags }: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -56,6 +58,16 @@ export function MailboxCard({ mailbox, active, onSelect, formatDate, formatRemai
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{mailbox.permanent ? "永久邮箱" : `剩余 ${formatRemainingHours(mailbox.expiresAt)}`}</span>
             <span>更新于 {formatDate(mailbox.updatedAt)}</span>
+            {tags && tags.length > 0 && (
+              <>
+                {tags.map((tag) => (
+                  <MailboxTagBadge key={tag.name} tag={tag} className="text-[10px] px-1.5 py-0" />
+                ))}
+              </>
+            )}
+            <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <MailboxTagSelector mailboxId={mailbox.id} />
+            </span>
           </div>
         </CardContent>
       </Card>

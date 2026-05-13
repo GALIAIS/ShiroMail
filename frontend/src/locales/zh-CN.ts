@@ -604,6 +604,11 @@ const translation = {
     markAllRead: "全部标为已读",
     clearAll: "清空全部",
     newMessage: "收到新消息",
+    enable: "开启通知",
+    enabled: "通知已开启",
+    denied: "通知已被浏览器阻止，请在浏览器设置中允许",
+    newEmail: "新邮件",
+    newEmailBody: "收到来自 {{from}} 的邮件",
   },
   adminOverview: {
     badge: "实时汇总",
@@ -928,6 +933,8 @@ const translation = {
     assignTag: "分配标签",
     noTags: "暂无标签",
     confirmDelete: "确定删除此标签？关联的邮箱将自动解绑。",
+    filterAll: "全部",
+    manageTags: "管理标签",
   },
 } as const;
 

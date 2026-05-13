@@ -18,10 +18,11 @@ import {
   summarizeMessageHeaders,
 } from "@/features/mail-preview";
 import { decodeMimeHeaderValue } from "@/lib/mail-header";
-import { paginateItems } from "@/lib/pagination";
 import { validateIntegerRange, validateMailboxLocalPart, validateSelection } from "@/lib/validation";
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNotifications } from "@/hooks/use-notifications";
+import { NotificationToggle } from "../components/notification-toggle";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -92,6 +93,7 @@ function blobToDataURL(blob: Blob) {
 export function UserMailboxPage() {
   const { t } = useTranslation();
   const autoRefreshStorageKey = "shiro-email.user-mailboxes.auto-refresh-seconds";
+  const notificationsStorageKey = "shiro-email.notifications-enabled";
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMailboxId, setSelectedMailboxId] = useState<number | null>(null);
@@ -121,6 +123,13 @@ export function UserMailboxPage() {
     return storedValue && ["0", "5", "15", "30"].includes(storedValue) ? Number(storedValue) : 5;
   });
 
+  const { notify } = useNotifications();
+  const prevMessageCountRef = useRef<number | null>(null);
+  const notificationsEnabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(notificationsStorageKey) !== "false";
+  }, [notificationsStorageKey]);
+
   const dashboardQuery = useQuery({
     queryKey: ["user-dashboard"],
     queryFn: fetchDashboard,
@@ -144,23 +153,19 @@ export function UserMailboxPage() {
     }
     return String(domains[0].id);
   }, [domainId, domains, searchParams]);
-  const paginatedMailboxes = useMemo(
-    () => paginateItems(mailboxes, mailboxesPage, mailboxesPageSize),
-    [mailboxes, mailboxesPage, mailboxesPageSize],
-  );
   const effectiveSelectedMailboxId = useMemo(() => {
-    if (!paginatedMailboxes.items.length) {
+    if (!mailboxes.length) {
       return null;
     }
-    if (selectedMailboxId && paginatedMailboxes.items.some((item) => item.id === selectedMailboxId)) {
+    if (selectedMailboxId && mailboxes.some((item) => item.id === selectedMailboxId)) {
       return selectedMailboxId;
     }
-    return paginatedMailboxes.items[0].id;
-  }, [paginatedMailboxes.items, selectedMailboxId]);
+    return mailboxes[0].id;
+  }, [mailboxes, selectedMailboxId]);
 
   const selectedMailbox = useMemo(
-    () => paginatedMailboxes.items.find((item) => item.id === effectiveSelectedMailboxId) ?? null,
-    [effectiveSelectedMailboxId, paginatedMailboxes.items],
+    () => mailboxes.find((item) => item.id === effectiveSelectedMailboxId) ?? null,
+    [effectiveSelectedMailboxId, mailboxes],
   );
 
   const effectiveMessagesSearch = debouncedMessagesSearch.length >= 2 ? debouncedMessagesSearch : "";
@@ -318,6 +323,24 @@ export function UserMailboxPage() {
       window.clearInterval(intervalId);
     };
   }, [autoRefreshSeconds, pageVisible, refreshMailboxWorkspace]);
+
+  // Notify when new messages arrive while the page is not visible
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+    const currentCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    if (prevCount !== null && currentCount > prevCount && !pageVisible) {
+      const newest = messages[0];
+      if (newest) {
+        const from = newest.fromAddr || t("notifications.newEmail");
+        notify(t("notifications.newEmail"), {
+          body: t("notifications.newEmailBody", { from }),
+          tag: `shiro-email-new-${newest.id}`,
+        });
+      }
+    }
+    prevMessageCountRef.current = currentCount;
+  }, [messages, pageVisible, notify, notificationsEnabled, t]);
 
   useEffect(() => {
     if (messageViewMode !== "html" || !selectedMessageParsedRawQuery.data || !effectiveSelectedMailboxId || !selectedMessageSummary) {
@@ -488,6 +511,7 @@ export function UserMailboxPage() {
                   <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
                   刷新
                 </Button>
+                <NotificationToggle />
               </div>
             }
             description="创建新的临时邮箱、延长有效期并查看当前收件状态。"
@@ -520,7 +544,7 @@ export function UserMailboxPage() {
           <MailboxList
             isLoading={dashboardQuery.isLoading}
             hasMailboxes={mailboxes.length > 0}
-            paginatedMailboxes={paginatedMailboxes}
+            mailboxes={mailboxes}
             effectiveSelectedMailboxId={effectiveSelectedMailboxId}
             onSelectMailbox={(id) => {
               setSelectedMailboxId(id);
@@ -529,6 +553,7 @@ export function UserMailboxPage() {
             }}
             onPageChange={setMailboxesPage}
             onPageSizeChange={setMailboxesPageSize}
+            page={mailboxesPage}
             pageSize={mailboxesPageSize}
             pageSizeOptions={PAGE_SIZE_OPTIONS}
             formatDate={formatDate}
