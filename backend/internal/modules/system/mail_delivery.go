@@ -93,6 +93,22 @@ func SendMailDeliveryCode(settings MailDeliveryConfig, to string, subject string
 	return sendMailDeliveryMessage(settings, to, subject, message)
 }
 
+func SendMailDeliveryRaw(settings MailDeliveryConfig, to string, rawMessage []byte) error {
+	if err := ValidateMailDeliverySettings(settings); err != nil {
+		return err
+	}
+	recipient := strings.TrimSpace(to)
+	if recipient == "" {
+		return fmt.Errorf("mail delivery recipient is required")
+	}
+	if len(rawMessage) == 0 {
+		return fmt.Errorf("raw message is empty")
+	}
+
+	addr := fmt.Sprintf("%s:%d", settings.Host, settings.Port)
+	return sendMailDeliveryWithTransport(settings, addr, recipient, rawMessage)
+}
+
 type MailDeliveryMessage struct {
 	TextLines []string
 	HTMLBody  string

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -18,7 +19,7 @@ type InboundStore interface {
 	StoreInbound(ctx context.Context, mailboxID uint64, item StoredInboundMessage) error
 }
 
-type ForwardingCallback func(ctx context.Context, mailboxAddress string, forwardTo string, subject string, rawBytes []byte)
+type ForwardingCallback func(ctx context.Context, mailboxAddress string, forwardTo string, subject string, rawBytes []byte) error
 
 type DeliveryCallback func(mailboxUserID uint64, mailboxID uint64, mailboxAddress string, subject string)
 
@@ -208,7 +209,18 @@ func (s *DirectService) storeParsedToTargets(ctx context.Context, env InboundEnv
 			s.onDelivery(target.UserID, target.ID, target.Address, item.Subject)
 		}
 		if s.onForwarding != nil && strings.TrimSpace(target.ForwardTo) != "" {
-			s.onForwarding(ctx, target.Address, target.ForwardTo, item.Subject, parsed.RawBytes)
+			if err := s.onForwarding(ctx, target.Address, target.ForwardTo, item.Subject, parsed.RawBytes); err != nil {
+				slog.Warn("mail forwarding failed",
+					"mailbox",
+					target.Address,
+					"forward_to",
+					target.ForwardTo,
+					"subject",
+					item.Subject,
+					"error",
+					err,
+				)
+			}
 		}
 		lastItem = item
 		deliveredTo = target

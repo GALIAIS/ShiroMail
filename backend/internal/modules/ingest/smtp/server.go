@@ -42,10 +42,10 @@ func NewServer(cfg Config, deliver Deliverer) *Server {
 	}
 }
 
-func (s *Server) Start(ctx context.Context, ready func()) {
+func (s *Server) Start(ctx context.Context, ready func()) error {
 	ln, err := net.Listen("tcp", s.cfg.ListenAddr)
 	if err != nil {
-		panic(fmt.Sprintf("smtp listen failed: %v", err))
+		return fmt.Errorf("smtp listen failed: %w", err)
 	}
 	s.listener = ln
 	s.addr = ln.Addr().String()
@@ -63,7 +63,7 @@ func (s *Server) Start(ctx context.Context, ready func()) {
 		if err != nil {
 			select {
 			case <-ctx.Done():
-				return
+				return nil
 			default:
 				continue
 			}

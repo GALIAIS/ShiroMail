@@ -58,3 +58,40 @@ func TestMemoryRepositoryFindActiveByAddressRejectsExpiredMailbox(t *testing.T) 
 		t.Fatalf("expected ErrMailboxNotFound, got %v", err)
 	}
 }
+
+func TestMemoryRepositoryPermanentMailboxIsActiveWithPastExpiresAt(t *testing.T) {
+	repo := NewMemoryRepository()
+	ctx := context.Background()
+
+	created, err := repo.Create(ctx, Mailbox{
+		UserID:    1,
+		DomainID:  1,
+		Domain:    "example.test",
+		LocalPart: "permanent",
+		Address:   "permanent@example.test",
+		Status:    "active",
+		Permanent: true,
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatalf("create permanent mailbox: %v", err)
+	}
+
+	found, err := repo.FindActiveByAddress(ctx, "permanent@example.test")
+	if err != nil {
+		t.Fatalf("find active permanent mailbox: %v", err)
+	}
+	if found.ID != created.ID {
+		t.Fatalf("expected mailbox %d, got %d", created.ID, found.ID)
+	}
+
+	expiredIDs, err := repo.ListExpiredIDs(ctx, time.Now())
+	if err != nil {
+		t.Fatalf("list expired ids: %v", err)
+	}
+	if len(expiredIDs) != 0 {
+		t.Fatalf("expected permanent mailbox to be excluded from expired ids, got %v", expiredIDs)
+	}
+}

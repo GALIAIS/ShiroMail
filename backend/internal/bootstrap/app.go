@@ -44,22 +44,22 @@ import (
 )
 
 type AppState struct {
-	AuthRepo      auth.Repository
-	DomainRepo    domain.Repository
-	MailboxRepo   mailbox.Repository
-	MessageRepo   message.Repository
-	RuleRepo      rule.Repository
-	ExtractorRepo extractor.Repository
-	PortalRepo    portal.Repository
-	ConfigRepo    system.ConfigRepository
-	JobRepo       system.JobRepository
-	AuditRepo     system.AuditRepository
-	Cache         *sharedcache.JSONCache
-	MailStorage   ingest.FileStorage
-	DirectIngest  *ingest.DirectService
-	RedisClient   *redis.Client
-	WSHub         *realtime.Hub
-	DB            *gorm.DB
+	AuthRepo          auth.Repository
+	DomainRepo        domain.Repository
+	MailboxRepo       mailbox.Repository
+	MessageRepo       message.Repository
+	RuleRepo          rule.Repository
+	ExtractorRepo     extractor.Repository
+	PortalRepo        portal.Repository
+	ConfigRepo        system.ConfigRepository
+	JobRepo           system.JobRepository
+	AuditRepo         system.AuditRepository
+	Cache             *sharedcache.JSONCache
+	MailStorage       ingest.FileStorage
+	DirectIngest      *ingest.DirectService
+	RedisClient       *redis.Client
+	WSHub             *realtime.Hub
+	DB                *gorm.DB
 	WebhookDispatcher *webhook.Dispatcher
 }
 
@@ -67,11 +67,8 @@ func MustRunHTTPServer() {
 	cfg := config.MustLoadConfig()
 	logger.Init(cfg.AppEnv)
 
-	if cfg.IsProduction() {
-		weak := map[string]bool{"dev-secret": true, "change-me-in-production": true, "secret": true, "": true}
-		if weak[cfg.JWTSecret] || len(cfg.JWTSecret) < 32 {
-			log.Fatal("FATAL: JWT_SECRET must be at least 32 characters and not a default value in production.")
-		}
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("FATAL: invalid configuration: %v", err)
 	}
 	state, err := newRuntimePersistentState(cfg)
 	if err != nil {
@@ -104,14 +101,11 @@ func MustRunHTTPServer() {
 		if smtpEnabled {
 			smtpServer = ingestsmtp.NewServer(smtpRuntimeConfig, state.DirectIngest)
 			go func() {
-				defer func() {
-					if recovered := recover(); recovered != nil {
-						errCh <- fmt.Errorf("smtp server failed: %v", recovered)
-					}
-				}()
-				smtpServer.Start(ctx, func() {
+				if err := smtpServer.Start(ctx, func() {
 					slog.Info("api smtp listening", "addr", smtpServer.Addr())
-				})
+				}); err != nil {
+					errCh <- fmt.Errorf("smtp server failed: %w", err)
+				}
 			}()
 		}
 	}
@@ -350,9 +344,9 @@ func buildRouter(cfg config.Config, state *AppState) *gin.Engine {
 		}, nil
 	})
 	var (
-		cachedStats     system.PublicSiteStats
-		cachedStatsAt   time.Time
-		cachedStatsMu   sync.Mutex
+		cachedStats   system.PublicSiteStats
+		cachedStatsAt time.Time
+		cachedStatsMu sync.Mutex
 	)
 	publicStatsProvider := system.PublicSiteStatsFunc(func(ctx context.Context) (system.PublicSiteStats, error) {
 		cachedStatsMu.Lock()
@@ -769,6 +763,9 @@ func MustRunWorker() {
 	cfg := config.MustLoadConfig()
 	logger.Init(cfg.AppEnv)
 
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("FATAL: invalid configuration: %v", err)
+	}
 	state, err := newRuntimePersistentState(cfg)
 	if err != nil {
 		log.Fatalf("bootstrap runtime worker: %v", err)
@@ -905,14 +902,42 @@ func newRuntimePersistentState(cfg config.Config) (*AppState, error) {
 				"subject": subject,
 			})
 		})
-		state.DirectIngest.SetForwardingCallback(func(ctx context.Context, mailboxAddress string, forwardTo string, subject string, rawBytes []byte) {
-			// TODO: implement outbound SMTP sending for forwarding
-			slog.Info("forwarding message",
+		state.DirectIngest.SetForwardingCallback(func(ctx context.Context, mailboxAddress string, forwardTo string, subject string, rawBytes []byte) error {
+			settings, err := system.LoadMailDeliverySettings(ctx, state.ConfigRepo)
+			if err != nil {
+				slog.Warn("load mail forwarding delivery settings failed", "from_mailbox", mailboxAddress, "forward_to", forwardTo, "error", err)
+				return err
+			}
+			if !settings.Enabled {
+				slog.Info("mail forwarding skipped because mail delivery is disabled",
+					"from_mailbox", mailboxAddress,
+					"forward_to", forwardTo,
+					"subject", subject,
+					"size_bytes", len(rawBytes),
+				)
+				return nil
+			}
+			if err := system.SendMailDeliveryRaw(settings, forwardTo, rawBytes); err != nil {
+				diagnostic := system.DiagnoseMailDeliveryError(err)
+				slog.Warn("mail forwarding failed",
+					"from_mailbox", mailboxAddress,
+					"forward_to", forwardTo,
+					"subject", subject,
+					"size_bytes", len(rawBytes),
+					"stage", diagnostic.Stage,
+					"code", diagnostic.Code,
+					"retryable", diagnostic.Retryable,
+					"error", err,
+				)
+				return err
+			}
+			slog.Info("mail forwarding sent",
 				"from_mailbox", mailboxAddress,
 				"forward_to", forwardTo,
 				"subject", subject,
 				"size_bytes", len(rawBytes),
 			)
+			return nil
 		})
 	}
 

@@ -52,12 +52,19 @@ func runConfigCheck() {
 	check(len(cfg.JWTSecret) >= 32, "JWT_SECRET", fmt.Sprintf("%d characters", len(cfg.JWTSecret)))
 	warn(cfg.JWTSecret == "dev-secret", "JWT_SECRET", "using default dev secret (insecure)")
 	check(cfg.MySQLDSN != "", "MYSQL_DSN", "configured")
+	warn(strings.HasPrefix(strings.ToLower(strings.TrimSpace(cfg.MySQLDSN)), "root:root@"), "MYSQL_DSN", "uses default root/root credentials")
 	check(cfg.RedisAddr != "", "REDIS_ADDR", cfg.RedisAddr)
+	warn(cfg.IsProduction() && cfg.RedisPassword == "", "REDIS_PASSWORD", "empty in production")
 
 	corsJoined := strings.Join(cfg.CORSAllowedOrigins, ",")
 	warn(strings.Contains(corsJoined, "localhost"), "CORS_ALLOWED_ORIGINS", "contains localhost (not recommended for production)")
 	warn(cfg.AppEnv != "production", "APP_ENV", fmt.Sprintf("set to '%s' (not production)", cfg.AppEnv))
+	warn(cfg.IsProduction() && cfg.MetricsToken == "", "METRICS_TOKEN", "empty in production")
 	check(cfg.AppPort != "", "APP_PORT", cfg.AppPort)
+	if err := cfg.Validate(); err != nil {
+		fmt.Printf("  \033[31m[ERR]\033[0m  CONFIG_VALIDATION: %v\n", err)
+		errors++
+	}
 
 	fmt.Println()
 	if errors > 0 {

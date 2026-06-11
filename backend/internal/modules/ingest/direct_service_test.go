@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,6 +73,58 @@ func TestDirectServiceDeliversInboundMailToMatchedMailbox(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(storage.rootDir, filepath.FromSlash(result.Attachments[0].StorageKey))); err != nil {
 		t.Fatalf("expected attachment file to exist, got %v", err)
+	}
+}
+
+func TestDirectServiceForwardingCallbackFailureDoesNotRollbackLocalDelivery(t *testing.T) {
+	ctx := context.Background()
+	mailboxes := mailbox.NewMemoryRepository()
+	target, err := mailboxes.Create(ctx, mailbox.Mailbox{
+		UserID:    1,
+		DomainID:  1,
+		Domain:    "example.test",
+		LocalPart: "alpha",
+		Address:   "alpha@example.test",
+		Status:    "active",
+		ExpiresAt: time.Now().Add(2 * time.Hour),
+		ForwardTo: "forward@example.net",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatalf("create mailbox: %v", err)
+	}
+
+	messageStore := NewMemoryMessageRepository()
+	storage, err := NewLocalFileStorage(t.TempDir())
+	if err != nil {
+		t.Fatalf("create local file storage: %v", err)
+	}
+
+	service := NewDirectService(mailboxes, messageStore, storage)
+	forwardCalls := 0
+	service.SetForwardingCallback(func(context.Context, string, string, string, []byte) error {
+		forwardCalls++
+		return errors.New("smtp unavailable")
+	})
+
+	_, err = service.Deliver(ctx, InboundEnvelope{
+		MailFrom:   "sender@example.com",
+		Recipients: []string{"alpha@example.test"},
+	}, strings.NewReader("From: sender@example.com\r\nTo: alpha@example.test\r\nSubject: Forwarded\r\n\r\nbody"))
+	if err != nil {
+		t.Fatalf("deliver inbound message should not fail on forwarding error: %v", err)
+	}
+	if forwardCalls != 1 {
+		t.Fatalf("expected forwarding callback once, got %d", forwardCalls)
+	}
+
+	items, err := messageStore.ListByMailboxID(ctx, target.ID)
+	if err != nil {
+		t.Fatalf("list stored messages: %v", err)
+	}
+	if len(items) != 1 || items[0].Subject != "Forwarded" {
+		t.Fatalf("expected local delivery to remain stored, got %#v", items)
 	}
 }
 

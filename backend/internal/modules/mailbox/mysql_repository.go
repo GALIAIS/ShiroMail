@@ -60,7 +60,7 @@ func (r *MySQLRepository) CountActive(ctx context.Context) int {
 	var count int64
 	if err := r.db.WithContext(ctx).
 		Model(&database.MailboxRow{}).
-		Where("status = ? AND expires_at > ?", "active", time.Now()).
+		Where("status = ? AND (permanent = ? OR expires_at > ?)", "active", true, time.Now()).
 		Count(&count).Error; err != nil {
 		return 0
 	}
@@ -69,9 +69,10 @@ func (r *MySQLRepository) CountActive(ctx context.Context) int {
 
 func (r *MySQLRepository) ListActive(ctx context.Context) ([]Mailbox, error) {
 	return r.list(ctx,
-		"mailboxes.status = ? AND mailboxes.expires_at > ?",
+		"mailboxes.status = ? AND (mailboxes.permanent = ? OR mailboxes.expires_at > ?)",
 		"mailboxes.id ASC",
 		"active",
+		true,
 		time.Now(),
 	)
 }
@@ -139,7 +140,7 @@ func (r *MySQLRepository) ListExpiredIDs(ctx context.Context, now time.Time) ([]
 	var ids []uint64
 	err := r.db.WithContext(ctx).
 		Model(&database.MailboxRow{}).
-		Where("status = ? AND expires_at <= ?", "active", now).
+		Where("status = ? AND permanent = ? AND expires_at <= ?", "active", false, now).
 		Order("id ASC").
 		Pluck("id", &ids).Error
 	return ids, err
@@ -167,10 +168,11 @@ func (r *MySQLRepository) FindByID(ctx context.Context, mailboxID uint64) (Mailb
 func (r *MySQLRepository) FindActiveByAddress(ctx context.Context, address string) (Mailbox, error) {
 	items, err := r.list(
 		ctx,
-		"LOWER(mailboxes.address) = ? AND mailboxes.status = ? AND mailboxes.expires_at > ?",
+		"LOWER(mailboxes.address) = ? AND mailboxes.status = ? AND (mailboxes.permanent = ? OR mailboxes.expires_at > ?)",
 		"mailboxes.id ASC",
 		strings.ToLower(strings.TrimSpace(address)),
 		"active",
+		true,
 		time.Now(),
 	)
 	if err != nil {

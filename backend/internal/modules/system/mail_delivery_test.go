@@ -246,6 +246,59 @@ func TestSendMailDeliveryWithPlainTransportUsesSendMail(t *testing.T) {
 	}
 }
 
+func TestSendMailDeliveryRawWithPlainTransportUsesEnvelopeSenderAndForwardRecipient(t *testing.T) {
+	previousSendMail := smtpSendMailFunc
+	t.Cleanup(func() {
+		smtpSendMailFunc = previousSendMail
+	})
+
+	rawMessage := []byte("From: original@example.com\r\nTo: mailbox@example.test\r\nSubject: Forward me\r\n\r\nbody")
+	called := false
+	smtpSendMailFunc = func(addr string, _ smtp.Auth, from string, to []string, msg []byte) error {
+		called = true
+		if addr != "smtp.example.com:25" {
+			t.Fatalf("unexpected smtp addr: %s", addr)
+		}
+		if from != "sender@example.com" {
+			t.Fatalf("expected configured envelope sender, got %s", from)
+		}
+		if len(to) != 1 || to[0] != "forward@example.net" {
+			t.Fatalf("expected forward recipient, got %v", to)
+		}
+		if string(msg) != string(rawMessage) {
+			t.Fatalf("expected raw message to be forwarded unchanged, got %q", string(msg))
+		}
+		return nil
+	}
+
+	err := SendMailDeliveryRaw(MailDeliveryConfig{
+		Enabled:       true,
+		Host:          "smtp.example.com",
+		Port:          25,
+		FromAddress:   "sender@example.com",
+		TransportMode: "plain",
+	}, "forward@example.net", rawMessage)
+	if err != nil {
+		t.Fatalf("send raw forward: %v", err)
+	}
+	if !called {
+		t.Fatal("expected smtp.SendMail path to be used")
+	}
+}
+
+func TestSendMailDeliveryRawRejectsEmptyPayload(t *testing.T) {
+	err := SendMailDeliveryRaw(MailDeliveryConfig{
+		Enabled:       true,
+		Host:          "smtp.example.com",
+		Port:          25,
+		FromAddress:   "sender@example.com",
+		TransportMode: "plain",
+	}, "forward@example.net", nil)
+	if err == nil || !strings.Contains(err.Error(), "raw message is empty") {
+		t.Fatalf("expected empty raw message error, got %v", err)
+	}
+}
+
 func TestSendMailDeliveryWithSMTPSUsesTLSDial(t *testing.T) {
 	previousTLSDial := smtpDialTLSFunc
 	t.Cleanup(func() {

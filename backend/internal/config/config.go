@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -19,7 +21,7 @@ type Config struct {
 	SpaceshipAPIBaseURL   string
 	LegacyMailSyncAPIURL  string
 	LegacyMailSyncEnabled bool
-	MailStoragePath        string
+	MailStoragePath       string
 }
 
 func MustLoadConfig() Config {
@@ -88,4 +90,67 @@ func splitEnv(key string, fallback string) []string {
 
 func (c Config) IsProduction() bool {
 	return c.AppEnv == "production"
+}
+
+func (c Config) Validate() error {
+	var validationErrors []error
+
+	if strings.TrimSpace(c.AppPort) == "" {
+		validationErrors = append(validationErrors, errors.New("APP_PORT is required"))
+	}
+	if strings.TrimSpace(c.MySQLDSN) == "" {
+		validationErrors = append(validationErrors, errors.New("MYSQL_DSN is required"))
+	}
+	if strings.TrimSpace(c.RedisAddr) == "" {
+		validationErrors = append(validationErrors, errors.New("REDIS_ADDR is required"))
+	}
+	if strings.TrimSpace(c.MailStoragePath) == "" {
+		validationErrors = append(validationErrors, errors.New("MAIL_STORAGE_PATH is required"))
+	}
+
+	if c.IsProduction() {
+		if isWeakJWTSecret(c.JWTSecret) {
+			validationErrors = append(validationErrors, fmt.Errorf("JWT_SECRET must be at least 32 characters and not a default value in production"))
+		}
+		if usesDefaultMySQLCredentials(c.MySQLDSN) {
+			validationErrors = append(validationErrors, fmt.Errorf("MYSQL_DSN must not use default root/root credentials in production"))
+		}
+		if strings.TrimSpace(c.RedisPassword) == "" {
+			validationErrors = append(validationErrors, fmt.Errorf("REDIS_PASSWORD is required in production"))
+		}
+		if strings.TrimSpace(c.MetricsToken) == "" {
+			validationErrors = append(validationErrors, fmt.Errorf("METRICS_TOKEN is required in production"))
+		}
+		for _, origin := range c.CORSAllowedOrigins {
+			if isLocalhostOrigin(origin) {
+				validationErrors = append(validationErrors, fmt.Errorf("CORS_ALLOWED_ORIGINS must not include localhost or 127.0.0.1 in production"))
+				break
+			}
+		}
+	}
+
+	return errors.Join(validationErrors...)
+}
+
+func isWeakJWTSecret(secret string) bool {
+	trimmed := strings.TrimSpace(secret)
+	weak := map[string]bool{
+		"":                        true,
+		"dev-secret":              true,
+		"change-me-in-production": true,
+		"secret":                  true,
+	}
+	return len(trimmed) < 32 || weak[trimmed]
+}
+
+func usesDefaultMySQLCredentials(dsn string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(dsn))
+	return strings.HasPrefix(normalized, "root:root@")
+}
+
+func isLocalhostOrigin(origin string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(origin))
+	return strings.Contains(normalized, "localhost") ||
+		strings.Contains(normalized, "127.0.0.1") ||
+		strings.Contains(normalized, "[::1]")
 }

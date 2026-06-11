@@ -91,7 +91,7 @@ func (s *Service) CreateMailbox(ctx context.Context, userID uint64, req CreateMa
 
 	var expiresAt time.Time
 	if req.Permanent {
-		expiresAt = time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+		expiresAt = PermanentExpiresAt()
 	} else {
 		expiresAt = time.Now().Add(time.Duration(req.ExpiresInHours) * time.Hour)
 	}
@@ -183,6 +183,16 @@ func (s *Service) ExtendMailbox(ctx context.Context, userID uint64, mailboxID ui
 		if !apiKeyAllowsDomainAccess(*apiKey, userID, selectedDomain, "write") {
 			return Mailbox{}, portal.ErrAPIKeyForbidden
 		}
+	}
+	if item.Permanent {
+		item.Status = "active"
+		item.ExpiresAt = PermanentExpiresAt()
+		item.UpdatedAt = time.Now()
+		updated, err := s.repo.Update(ctx, item)
+		if err == nil {
+			s.invalidateCaches(ctx, userID)
+		}
+		return updated, err
 	}
 
 	base := time.Now()
@@ -437,6 +447,18 @@ func RequiresVerifiedSubdomain(item domain.Domain) bool {
 
 func ResolveLocalPart(value string) (string, error) {
 	return resolveLocalPart(value)
+}
+
+func PermanentExpiresAt() time.Time {
+	return time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+}
+
+func IsMailboxActiveAt(item Mailbox, now time.Time) bool {
+	return item.Status == "active" && (item.Permanent || item.ExpiresAt.After(now))
+}
+
+func IsMailboxExpiredAt(item Mailbox, now time.Time) bool {
+	return item.Status == "active" && !item.Permanent && !item.ExpiresAt.After(now)
 }
 
 func (s *Service) invalidateCaches(ctx context.Context, userID uint64) {

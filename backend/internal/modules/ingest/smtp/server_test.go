@@ -27,7 +27,11 @@ func TestServerAcceptsMessageAndStoresViaDirectIngest(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -79,7 +83,11 @@ func TestServerRejectsUnknownRecipient(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -117,7 +125,11 @@ func TestServerLogsDetailedRecipientRejection(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -180,7 +192,11 @@ func TestServerAcceptsSequentialMessagesForDifferentMailboxes(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -256,7 +272,11 @@ func TestServerAcceptsMultipleRecipientsInSingleMessage(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -316,7 +336,11 @@ func TestServerRejectsAttachmentLargerThanInboundPolicyWith552(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -356,7 +380,11 @@ func TestServerRejectsExecutableAttachmentWith550(t *testing.T) {
 	defer cancel()
 
 	ready := make(chan struct{})
-	go server.Start(ctx, func() { close(ready) })
+	go func() {
+		if err := server.Start(ctx, func() { close(ready) }); err != nil {
+			t.Errorf("smtp server start: %v", err)
+		}
+	}()
 	<-ready
 	defer server.Drain()
 
@@ -378,6 +406,28 @@ func TestServerRejectsExecutableAttachmentWith550(t *testing.T) {
 	client.expectPrefix("354")
 	client.sendData("From: sender@example.com\r\nTo: " + fixture.mailboxAddress + "\r\nSubject: Executable\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=abc\r\n\r\n--abc\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello direct smtp\r\n--abc\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=\"run.exe\"\r\n\r\nMZbinary\r\n--abc--\r\n")
 	client.expectPrefix("550")
+}
+
+func TestServerStartReturnsListenError(t *testing.T) {
+	fixture := newSMTPDirectServiceFixture(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve listener: %v", err)
+	}
+	defer listener.Close()
+
+	server := NewServer(Config{
+		ListenAddr: listener.Addr().String(),
+		Hostname:   "shiro.local",
+	}, fixture.service)
+
+	err = server.Start(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected listen error")
+	}
+	if !strings.Contains(err.Error(), "smtp listen failed") {
+		t.Fatalf("expected smtp listen failed error, got %v", err)
+	}
 }
 
 type smtpFixture struct {
