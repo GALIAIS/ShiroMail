@@ -160,7 +160,7 @@ export function PublicShell({ children, hero, pageClassName }: PublicShellProps)
             </div>
           </div>
 
-          <nav aria-label="公开站移动导航" className="flex gap-2 overflow-x-auto border-t border-border/60 px-3 py-2 md:hidden sm:px-4">
+          <nav aria-label="公开站移动导航" className="no-scrollbar flex gap-2 overflow-x-auto border-t border-border/60 px-3 py-2 md:hidden sm:px-4">
             {publicNavItems.map((item) => {
               const active = location.pathname === item.match;
               const label = t(item.labelKey);

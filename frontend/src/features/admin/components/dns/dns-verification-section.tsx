@@ -3,6 +3,7 @@ import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import type { VerificationProfileItem } from "../../api";
 import { SectionToggle } from "./dns-shared-ui";
@@ -41,7 +42,7 @@ export function DnsVerificationSection({
                 description={`${profile.verificationType} · observed ${profile.observedRecords.length} / expected ${profile.expectedRecords.length}`}
                 meta={
                   <>
-                    <WorkspaceBadge>{profile.status}</WorkspaceBadge>
+                    <WorkspaceStatusBadge status={profile.status}>{profile.status}</WorkspaceStatusBadge>
                     <span>
                       {profile.lastCheckedAt
                         ? `检查于 ${formatChangeSetTimestamp(profile.lastCheckedAt)}`

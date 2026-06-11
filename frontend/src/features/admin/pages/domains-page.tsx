@@ -38,6 +38,7 @@ import {
   WorkspaceField,
   WorkspacePage,
   WorkspacePanel,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { paginateItems } from "@/lib/pagination";
@@ -309,7 +310,7 @@ function DomainVerificationDetails({
             <div key={profile.verificationType} className="rounded-lg border border-border/60 bg-background/80 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <WorkspaceBadge variant="outline">{formatVerificationTypeLabel(profile.verificationType)}</WorkspaceBadge>
-                <WorkspaceBadge variant="outline">{formatVerificationStatusLabel(profile.status)}</WorkspaceBadge>
+                <WorkspaceStatusBadge status={profile.status}>{formatVerificationStatusLabel(profile.status)}</WorkspaceStatusBadge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{profile.summary}</p>
               {profile.repairRecords.length ? (
@@ -1162,9 +1163,9 @@ export function AdminDomainsPage() {
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <WorkspaceBadge variant="outline">{domain.status}</WorkspaceBadge>
+                            <WorkspaceStatusBadge status={domain.status}>{domain.status}</WorkspaceStatusBadge>
                             <WorkspaceBadge variant="outline">{domain.visibility}</WorkspaceBadge>
-                            <WorkspaceBadge variant="outline">{domain.publicationStatus}</WorkspaceBadge>
+                            <WorkspaceStatusBadge status={domain.publicationStatus}>{domain.publicationStatus}</WorkspaceStatusBadge>
                             {domain.providerDisplayName ? (
                               <WorkspaceBadge variant="outline">{domain.providerDisplayName}</WorkspaceBadge>
                             ) : null}
@@ -1254,7 +1255,7 @@ export function AdminDomainsPage() {
                             <div className="mt-4 space-y-3 text-sm">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-muted-foreground">健康度</span>
-                                <WorkspaceBadge variant="outline">{domain.healthStatus}</WorkspaceBadge>
+                                <WorkspaceStatusBadge status={domain.healthStatus}>{domain.healthStatus}</WorkspaceStatusBadge>
                               </div>
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-muted-foreground">根域</span>

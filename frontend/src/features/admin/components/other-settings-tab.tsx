@@ -24,6 +24,7 @@ type OtherSettingsTabProps = {
   isTestPending: boolean;
   onSendDeliveryTest: () => void;
   deliveryTestDiagnostic: DeliveryTestDiagnosticState;
+  hasUnsavedChanges?: boolean;
 };
 
 export function OtherSettingsTab({
@@ -40,6 +41,7 @@ export function OtherSettingsTab({
   isTestPending,
   onSendDeliveryTest,
   deliveryTestDiagnostic,
+  hasUnsavedChanges = false,
 }: OtherSettingsTabProps) {
   return (
     <div className="grid gap-4">
@@ -77,6 +79,7 @@ export function OtherSettingsTab({
           isPending={isTestPending}
           onSendTest={onSendDeliveryTest}
           diagnosticState={deliveryTestDiagnostic}
+          hasUnsavedChanges={hasUnsavedChanges}
         />
       </WorkspacePanel>
 

@@ -36,6 +36,7 @@ import {
   WorkspaceField,
   WorkspacePage,
   WorkspacePanel,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { useAuthStore } from "@/lib/auth-store";
@@ -284,7 +285,7 @@ function DomainVerificationDetails({
             <div key={profile.verificationType} className="rounded-lg border border-border/60 bg-background/80 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <WorkspaceBadge variant="outline">{formatVerificationTypeLabel(profile.verificationType)}</WorkspaceBadge>
-                <WorkspaceBadge variant="outline">{formatVerificationStatusLabel(profile.status)}</WorkspaceBadge>
+                <WorkspaceStatusBadge status={profile.status}>{formatVerificationStatusLabel(profile.status)}</WorkspaceStatusBadge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{profile.summary}</p>
               {profile.repairRecords.length ? (
@@ -1126,9 +1127,9 @@ export function UserDomainsPage() {
                                 ? "未绑定 DNS"
                                 : "待验证"}
                           </span>
-                          <WorkspaceBadge>{root.status}</WorkspaceBadge>
+                          <WorkspaceStatusBadge status={root.status}>{root.status}</WorkspaceStatusBadge>
                           <WorkspaceBadge variant="outline">{root.visibility}</WorkspaceBadge>
-                          <WorkspaceBadge variant="outline">{root.publicationStatus}</WorkspaceBadge>
+                          <WorkspaceStatusBadge status={root.publicationStatus}>{root.publicationStatus}</WorkspaceStatusBadge>
                           <WorkspaceBadge variant="outline">验证分 {root.verificationScore}</WorkspaceBadge>
                         </div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -1303,7 +1304,7 @@ export function UserDomainsPage() {
                                     <Button asChild size="sm" variant="secondary">
                                       <Link to={`/dashboard/mailboxes?domainId=${child.id}`}>创建邮箱</Link>
                                     </Button>
-                                    <WorkspaceBadge variant="outline">{child.publicationStatus}</WorkspaceBadge>
+                                    <WorkspaceStatusBadge status={child.publicationStatus}>{child.publicationStatus}</WorkspaceStatusBadge>
                                     <Button
                                       size="sm"
                                       variant="ghost"

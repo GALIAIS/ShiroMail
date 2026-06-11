@@ -24,6 +24,7 @@ import {
   WorkspaceMetric,
   WorkspacePage,
   WorkspacePanel,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import {
   buildMailHtmlDocument,
@@ -693,7 +694,9 @@ export function AdminMailboxesPage() {
                                 {mailbox.ownerUsername} · {mailbox.domain}
                               </p>
                             </div>
-                            <WorkspaceBadge>{mailbox.status === "active" ? "活跃" : mailbox.status}</WorkspaceBadge>
+                            <WorkspaceStatusBadge status={mailbox.status}>
+                              {mailbox.status === "active" ? "活跃" : mailbox.status}
+                            </WorkspaceStatusBadge>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                             <span>{mailbox.permanent ? "永久邮箱" : `剩余 ${formatRemainingHours(mailbox.expiresAt)}`}</span>
@@ -1171,21 +1174,23 @@ function MetaCard({ label, value }: { label: string; value: string }) {
 
 function SecurityStatusCard({ label, value }: { label: string; value: string }) {
   const normalized = value.toLowerCase();
-  const variant =
+  const tone =
     normalized.includes("pass") || normalized.includes("通过")
-      ? "secondary"
+      ? "success"
       : normalized.includes("fail") || normalized.includes("reject")
-        ? "destructive"
-        : "outline";
+        ? "danger"
+        : normalized.includes("none") || normalized.includes("unknown") || normalized.includes("未")
+          ? "warning"
+          : undefined;
 
   return (
     <Card className="border-border/60 bg-background/60 shadow-none">
       <CardContent className="space-y-2 py-4">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
         <div className="flex items-center gap-2">
-          <Badge className="rounded-full" variant={variant}>
+          <WorkspaceStatusBadge status={value} tone={tone}>
             {value}
-          </Badge>
+          </WorkspaceStatusBadge>
         </div>
       </CardContent>
     </Card>

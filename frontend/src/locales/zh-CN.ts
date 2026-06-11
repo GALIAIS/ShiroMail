@@ -272,6 +272,11 @@ const translation = {
       minutesAgo: "2 分钟前",
       today: "今日",
     },
+    stats: {
+      syncing: "正在同步实时数据...",
+      updatedAt: "最近更新：{{time}}",
+      unavailable: "暂时无法获取实时数据",
+    },
     sections: {
       coreEyebrow: "Core",
       coreTitle: "核心能力",
@@ -324,10 +329,13 @@ const translation = {
       webhookBody: "消息事件、系统通知和回调地址统一收口，便于自动化脚本接入。",
     },
     workflow: {
+      step1Title: "创建邮箱",
       item1:
         "选择域名、设置有效期，必要时自定义 local part，几秒内完成邮箱创建。",
+      step2Title: "收取消息",
       item2:
         "消息列表、正文、附件和原始 EML 聚合在同一工作区，不需要再来回切页。",
+      step3Title: "接入自动化",
       item3:
         "进入控制台后继续处理邮箱、域名和接口能力。",
     },

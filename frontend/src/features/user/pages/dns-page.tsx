@@ -1,11 +1,18 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronRight, ChevronUp, Copy, RefreshCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCcw, Trash2 } from "lucide-react";
 import i18n from "@/lib/i18n";
 import { DnsVerifyWizard } from "../components/dns-verify-wizard";
 import { DomainHealthScore } from "../components/domain-health-score";
+import {
+  DnsContextSurface,
+  DnsCopyButton,
+  DnsOperationGuide,
+  PaginationControls,
+  SectionToggle,
+} from "../components/dns-workspace-ui";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -38,11 +44,12 @@ import {
   WorkspaceField,
   WorkspaceListRow,
   WorkspacePage,
-  WorkspacePanel,
+  WorkspaceSection,
+  WorkspaceStatusBadge,
+  WorkspaceSurface,
 } from "@/components/layout/workspace-ui";
 import { getAPIErrorMessage } from "@/lib/http";
 import { formatDNSRecordValueForDisplay } from "@/lib/dns-record-display";
-import { showSuccess } from "@/lib/toast";
 import { useAuthStore } from "@/lib/auth-store";
 import { readPersistedState, writePersistedState } from "@/lib/persisted-state";
 import {
@@ -97,35 +104,6 @@ const PROVIDER_PERMISSION_OPTIONS: Record<"cloudflare" | "spaceship", OptionComb
 const PERSISTED_QUERY_STALE_TIME = 60_000;
 const PROVIDER_ZONE_FAILURE_COOLDOWN_MS = 45_000;
 const USER_DNS_RECORDS_PAGE_SIZE = 8;
-
-function DnsCopyButton({ value }: { value: string }) {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    if (typeof navigator === "undefined" || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      showSuccess(t("dns.copied"));
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // silently fail
-    }
-  }, [value, t]);
-
-  return (
-    <Button
-      aria-label={t("dns.copied")}
-      className={copied ? "opacity-100" : "opacity-0 group-hover/row:opacity-100 transition-opacity"}
-      onClick={handleCopy}
-      size="icon-sm"
-      variant="ghost"
-    >
-      <Copy className="size-3.5" />
-    </Button>
-  );
-}
 
 function getProviderPermissionOptions(provider: string) {
   return PROVIDER_PERMISSION_OPTIONS[
@@ -320,84 +298,6 @@ function paginateItems<T>(items: T[], page: number, pageSize: number) {
     total,
     totalPages,
   };
-}
-
-function PaginationControls({
-  page,
-  totalPages,
-  total,
-  pageSize,
-  itemLabel,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  total: number;
-  pageSize: number;
-  itemLabel: string;
-  onPageChange: (page: number) => void;
-}) {
-  if (total <= pageSize) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2">
-      <p className="text-xs text-muted-foreground">
-        第 {page} / {totalPages} 页 · 共 {total} 条{itemLabel}
-      </p>
-      <div className="flex items-center gap-2">
-        <Button
-          disabled={page <= 1}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= totalPages}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SectionToggle({
-  expanded,
-  title,
-  description,
-  meta,
-  onToggle,
-}: {
-  expanded: boolean;
-  title: string;
-  description: string;
-  meta?: ReactNode;
-  onToggle: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {meta}
-        <Button size="sm" type="button" variant="ghost" onClick={onToggle}>
-          {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-          {expanded ? "收起" : "展开"}
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 function dedupeProviderRecords(records: UserProviderRecordItem[]) {
@@ -1435,8 +1335,8 @@ export function UserDnsPage() {
   ]);
 
   return (
-    <WorkspacePage>
-      <WorkspacePanel
+    <WorkspacePage className="gap-5">
+      <WorkspaceSection
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
@@ -1508,43 +1408,14 @@ export function UserDnsPage() {
           </NoticeBanner>
         ) : null}
         {(requestedProvider || requestedDomain || activeZoneWorkspace) ? (
-          <Card className="border-border/60 bg-card/85 shadow-none">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="space-y-1">
-                <div className="text-sm font-medium">当前上下文</div>
-                <p className="text-xs text-muted-foreground">
-                  {requestedDomain
-                    ? `已按域名 ${requestedDomain.domain} 定位 DNS 工作区。`
-                    : requestedProvider
-                      ? `已按 Provider ${requestedProvider.displayName} 定位 DNS 工作区。`
-                      : `当前查看 ${activeZoneWorkspace?.zoneName ?? activeProviderWorkspace?.providerName ?? "DNS 工作区"}。`}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {requestedDomain ? <WorkspaceBadge variant="outline">域名：{requestedDomain.domain}</WorkspaceBadge> : null}
-                {requestedProvider ? <WorkspaceBadge variant="outline">Provider：{requestedProvider.displayName}</WorkspaceBadge> : null}
-                {activeZoneWorkspace ? <WorkspaceBadge variant="outline">Zone：{activeZoneWorkspace.zoneName}</WorkspaceBadge> : null}
-              </div>
-            </CardContent>
-          </Card>
+          <DnsContextSurface
+            domain={requestedDomain?.domain}
+            provider={requestedProvider?.displayName}
+            zone={activeZoneWorkspace?.zoneName}
+            workspaceName={activeProviderWorkspace?.providerName}
+          />
         ) : null}
-        <Card className="border-border/60 bg-card/85 shadow-none">
-          <CardContent className="space-y-3 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="text-sm font-medium">操作提示</div>
-                <p className="text-xs text-muted-foreground">
-                  先展开 Provider，再进入目标 Zone 查看记录和验证结果；根域记录通常用 `@`，子域记录只填前缀即可。
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <WorkspaceBadge variant="outline">1. 选择 Provider</WorkspaceBadge>
-                <WorkspaceBadge variant="outline">2. 查看验证</WorkspaceBadge>
-                <WorkspaceBadge variant="outline">3. 应用修复</WorkspaceBadge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DnsOperationGuide />
 
         <Dialog
           onOpenChange={(open) => {
@@ -1782,20 +1653,12 @@ export function UserDnsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-
-
-
-        <div className="space-y-4">
-          <Card className="border-border/60 bg-card/85 shadow-none">
-            <CardContent className="space-y-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-medium">Provider 账号</div>
-                  <p className="text-xs text-muted-foreground">你的私有 DNS Provider 列表，根域名可以直接绑定到这些账号。</p>
-                </div>
-                <WorkspaceBadge>{(providersQuery.data ?? []).length} 个</WorkspaceBadge>
-              </div>
+        <WorkspaceSection
+          action={<WorkspaceBadge>{(providersQuery.data ?? []).length} 个</WorkspaceBadge>}
+          description="你的私有 DNS Provider 列表，根域名可以直接绑定到这些账号。"
+          title="Provider 账号"
+        >
+          <WorkspaceSurface className="space-y-4 bg-card/82">
               {(providersQuery.data ?? []).length ? (
                 <div className="space-y-2">
                   {(providersQuery.data ?? []).map((provider) => (
@@ -1813,7 +1676,7 @@ export function UserDnsPage() {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-medium">{provider.displayName}</span>
                               <WorkspaceBadge variant="outline">{provider.provider}</WorkspaceBadge>
-                              <WorkspaceBadge variant="outline">{provider.status}</WorkspaceBadge>
+                              <WorkspaceStatusBadge status={provider.status}>{provider.status}</WorkspaceStatusBadge>
                             </div>
                             <p className="text-xs text-muted-foreground">{provider.authType} · {(provider.capabilities ?? []).join(" / ") || "未配置权限"}</p>
                             {activeProviderWorkspace?.providerId === provider.id ? (
@@ -1994,7 +1857,7 @@ export function UserDnsPage() {
                                             </div>
                                           </button>
                                           <div className="flex flex-wrap items-center gap-2 text-[0.82rem] text-muted-foreground md:justify-end">
-                                            <WorkspaceBadge variant="outline">{zone.status}</WorkspaceBadge>
+                                            <WorkspaceStatusBadge status={zone.status}>{zone.status}</WorkspaceStatusBadge>
                                             {cooldownSeconds > 0 ? (
                                               <WorkspaceBadge variant="outline">冷却 {cooldownSeconds}s</WorkspaceBadge>
                                             ) : null}
@@ -2166,7 +2029,7 @@ export function UserDnsPage() {
                                                           description={item.summary}
                                                           meta={
                                                             <>
-                                                              <WorkspaceBadge variant={item.status === "verified" ? "secondary" : "outline"}>{item.status}</WorkspaceBadge>
+                                                              <WorkspaceStatusBadge status={item.status}>{item.status}</WorkspaceStatusBadge>
                                                               <span>{formatProviderTimestamp(item.lastCheckedAt)}</span>
                                                             </>
                                                           }
@@ -2187,7 +2050,7 @@ export function UserDnsPage() {
                                                           description={`${item.operations.length} 条操作 · ${item.provider}`}
                                                           meta={
                                                             <>
-                                                              <WorkspaceBadge variant="outline">{item.status}</WorkspaceBadge>
+                                                              <WorkspaceStatusBadge status={item.status}>{item.status}</WorkspaceStatusBadge>
                                                               <span>{formatProviderTimestamp(item.appliedAt ?? item.createdAt)}</span>
                                                             </>
                                                           }
@@ -2346,7 +2209,7 @@ export function UserDnsPage() {
                                                               <p className="text-xs text-muted-foreground">{activePreviewChangeSet.summary}</p>
                                                             </div>
                                                             <div className="flex flex-wrap gap-2">
-                                                              <WorkspaceBadge variant="outline">{activePreviewChangeSet.status}</WorkspaceBadge>
+                                                              <WorkspaceStatusBadge status={activePreviewChangeSet.status}>{activePreviewChangeSet.status}</WorkspaceStatusBadge>
                                                               <WorkspaceBadge variant="outline">{activePreviewChangeSet.operations.length} 条操作</WorkspaceBadge>
                                                             </div>
                                                           </div>
@@ -2364,7 +2227,7 @@ export function UserDnsPage() {
                                                                   descriptionClassName="font-mono text-xs break-all whitespace-normal"
                                                                   meta={
                                                                     <>
-                                                                      <WorkspaceBadge variant="outline">{operation.status}</WorkspaceBadge>
+                                                                      <WorkspaceStatusBadge status={operation.status}>{operation.status}</WorkspaceStatusBadge>
                                                                       <span>{activePreviewChangeSet.provider}</span>
                                                                     </>
                                                                   }
@@ -2406,13 +2269,12 @@ export function UserDnsPage() {
               ) : (
                 <WorkspaceEmpty title="还没有 Provider" description="先添加一个 Cloudflare 或 Spaceship 账号，再绑定根域名。" />
               )}
-            </CardContent>
-          </Card>
+          </WorkspaceSurface>
 
           <NoticeBanner variant="info">
             待验证域名、绑定状态和“配置 DNS”入口已移动到 `域名管理` 页面；这里现在只保留 DNS 服务商、Zone、Records 和变更工作区。
           </NoticeBanner>
-        </div>
+        </WorkspaceSection>
 
         {dnsVerifyWizardOpen && activeZoneWorkspace && (
           <DnsVerifyWizard
@@ -2443,7 +2305,7 @@ export function UserDnsPage() {
             )}
           />
         )}
-      </WorkspacePanel>
+      </WorkspaceSection>
     </WorkspacePage>
   );
 }

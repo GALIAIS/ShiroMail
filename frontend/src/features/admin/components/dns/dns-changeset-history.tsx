@@ -3,6 +3,7 @@ import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import { cn } from "@/lib/utils";
 import type { DNSChangeSetItem } from "../../api";
@@ -65,7 +66,7 @@ export function DnsChangesetHistory({
               description={`${item.provider} · ${item.zoneName} · ${describeChangeSetOperations(item)}`}
               meta={
                 <>
-                  <WorkspaceBadge>{item.status}</WorkspaceBadge>
+                  <WorkspaceStatusBadge status={item.status}>{item.status}</WorkspaceStatusBadge>
                   <span>{item.appliedAt ? "已应用" : "待应用"}</span>
                   <span>
                     {item.appliedAt

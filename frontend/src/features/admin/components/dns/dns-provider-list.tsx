@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import {
-  WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import type { DomainProviderItem } from "../../api";
 import { PaginationControls } from "./dns-shared-ui";
@@ -57,7 +57,7 @@ export function DnsProviderList({
           description={`${provider.provider} · ${provider.ownerType} · ${provider.authType}`}
           meta={
             <>
-              <WorkspaceBadge>{provider.status}</WorkspaceBadge>
+              <WorkspaceStatusBadge status={provider.status}>{provider.status}</WorkspaceStatusBadge>
               <span>
                 {provider.hasSecret
                   ? "secret ready"

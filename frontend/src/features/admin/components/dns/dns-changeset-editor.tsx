@@ -8,6 +8,7 @@ import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import type { DNSChangeSetItem } from "../../api";
 import { PaginationControls, SectionToggle } from "./dns-shared-ui";
@@ -313,9 +314,9 @@ function ChangeSetPreviewPanel({ changeSet }: { changeSet: DNSChangeSetItem }) {
     <div className="space-y-2 rounded-xl border border-border/60 bg-background/80 p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <WorkspaceBadge variant="outline">当前预览</WorkspaceBadge>
-        <WorkspaceBadge>
+        <WorkspaceStatusBadge status={changeSet.status}>
           {changeSet.status}
-        </WorkspaceBadge>
+        </WorkspaceStatusBadge>
         <span>{describeChangeSetOperations(changeSet)}</span>
         <span>生成于 {formatChangeSetTimestamp(changeSet.createdAt)}</span>
         {changeSet.appliedAt ? (
@@ -339,9 +340,9 @@ function ChangeSetPreviewPanel({ changeSet }: { changeSet: DNSChangeSetItem }) {
               descriptionClassName="font-mono text-xs break-all whitespace-normal"
               meta={
                 <>
-                  <WorkspaceBadge>
+                  <WorkspaceStatusBadge status={operation.status}>
                     {operation.status}
-                  </WorkspaceBadge>
+                  </WorkspaceStatusBadge>
                   {operation.after?.ttl ? (
                     <span>TTL {operation.after.ttl}</span>
                   ) : null}

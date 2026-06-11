@@ -49,7 +49,10 @@ export function MailSettingsForm({
     <div className="space-y-4">
       {showSMTP ? (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <WorkspaceField label="SMTP Hostname / MX Target">
+          <WorkspaceField
+            label="SMTP Hostname / MX Target"
+            description="用于域名 MX 记录指向。改动保存后会影响后续 DNS 建议，不会自动修改外部 DNS。"
+          >
             <Input
               aria-label="SMTP Hostname"
               value={smtp.hostname}
@@ -58,7 +61,10 @@ export function MailSettingsForm({
               }
             />
           </WorkspaceField>
-          <WorkspaceField label="DKIM CNAME Target">
+          <WorkspaceField
+            label="DKIM CNAME Target"
+            description="可选发信认证目标。留空不影响入站收件，只会让 DKIM 验证建议回退到系统默认值。"
+          >
             <Input
               aria-label="DKIM CNAME Target"
               value={smtp.dkimCnameTarget}
@@ -67,7 +73,10 @@ export function MailSettingsForm({
               }
             />
           </WorkspaceField>
-          <WorkspaceField label="监听地址">
+          <WorkspaceField
+            label="监听地址"
+            description="SMTP 服务监听地址，例如 :2525。这里只保存配置，实际监听取决于后端服务启动参数。"
+          >
             <Input
               aria-label="监听地址"
               value={smtp.listenAddr}
@@ -76,7 +85,7 @@ export function MailSettingsForm({
               }
             />
           </WorkspaceField>
-          <WorkspaceField label="最大消息字节">
+          <WorkspaceField label="最大消息字节" description="超过该大小的入站邮件会被拒收。">
             <Input
               aria-label="最大消息字节"
               type="number"
@@ -102,13 +111,16 @@ export function MailSettingsForm({
       {showDelivery ? (
         <>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <WorkspaceField label="发信 SMTP Host">
+            <WorkspaceField
+              label="发信 SMTP Host"
+              description="用于账户验证、重置密码和系统通知的外部 SMTP 服务器。"
+            >
               <Input aria-label="发信 SMTP Host" value={delivery.host} onChange={(event) => onDeliveryChange({ ...delivery, host: event.target.value })} />
             </WorkspaceField>
-            <WorkspaceField label="发信端口">
+            <WorkspaceField label="发信端口" description="常见端口：587 STARTTLS，465 SMTPS，25 Plain SMTP。">
               <Input aria-label="发信端口" type="number" value={String(delivery.port)} onChange={(event) => onDeliveryChange({ ...delivery, port: Number(event.target.value || 0) })} />
             </WorkspaceField>
-            <WorkspaceField label="传输模式">
+            <WorkspaceField label="传输模式" description="需要和上游 SMTP 服务端口匹配，否则测试邮件会在 TLS 阶段失败。">
               <BasicSelect
                 aria-label="传输模式"
                 value={delivery.transportMode}
@@ -119,17 +131,20 @@ export function MailSettingsForm({
                 <option value="smtps">SMTPS</option>
               </BasicSelect>
             </WorkspaceField>
-            <WorkspaceField label="发信账号">
+            <WorkspaceField label="发信账号" description="通常是完整邮箱地址，也可能是 SMTP 服务商提供的账号。">
               <Input aria-label="发信账号" value={delivery.username} onChange={(event) => onDeliveryChange({ ...delivery, username: event.target.value })} />
             </WorkspaceField>
-            <WorkspaceField label="发件邮箱">
+            <WorkspaceField label="发件邮箱" description="邮件 From 地址。建议与 SMTP 账号或已验证发信域保持一致。">
               <Input aria-label="发件邮箱" value={delivery.fromAddress} onChange={(event) => onDeliveryChange({ ...delivery, fromAddress: event.target.value })} />
             </WorkspaceField>
             <WorkspaceField label="发件人名称">
               <Input aria-label="发件人名称" value={delivery.fromName} onChange={(event) => onDeliveryChange({ ...delivery, fromName: event.target.value })} />
             </WorkspaceField>
             <div className="md:col-span-2">
-              <WorkspaceField label="SMTP 密码 / App Password">
+              <WorkspaceField
+                label="SMTP 密码 / App Password"
+                description="保存后测试邮件才会使用新密码。留空且启用发信会被保存校验拦截。"
+              >
                 <Input aria-label="SMTP 密码 / App Password" type="password" value={delivery.password} onChange={(event) => onDeliveryChange({ ...delivery, password: event.target.value })} />
               </WorkspaceField>
             </div>
@@ -154,7 +169,7 @@ export function MailSettingsForm({
       {showInbound ? (
         <>
           <div className="grid gap-3 md:grid-cols-3">
-            <WorkspaceField label="原文保留天数">
+            <WorkspaceField label="原文保留天数" description="控制 raw eml 原文保留周期，不影响已解析出的消息元数据。">
               <Input
                 aria-label="原文保留天数"
                 type="number"
@@ -167,7 +182,7 @@ export function MailSettingsForm({
                 }
               />
             </WorkspaceField>
-            <WorkspaceField label="附件大小 MB">
+            <WorkspaceField label="附件大小 MB" description="超过该大小的附件会按入站策略拒绝或跳过。">
               <Input
                 aria-label="附件大小 MB"
                 type="number"

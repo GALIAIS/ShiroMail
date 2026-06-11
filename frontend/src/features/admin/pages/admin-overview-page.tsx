@@ -4,9 +4,10 @@ import { Activity, Database, Globe, ShieldCheck, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   WorkspaceListRow,
-  WorkspaceMetric,
+  WorkspaceMetricStrip,
   WorkspacePage,
-  WorkspacePanel,
+  WorkspaceSection,
+  WorkspaceSurface,
 } from "@/components/layout/workspace-ui";
 import { Badge } from "@/components/ui/badge";
 import { PaginationControls } from "@/components/ui/pagination-controls";
@@ -38,7 +39,7 @@ export function AdminOverviewPage() {
 
   return (
     <WorkspacePage>
-      <WorkspacePanel
+      <WorkspaceSection
         action={
           <Badge className="rounded-full" variant="outline">
             <Users className="mr-1 size-3.5" />
@@ -48,18 +49,16 @@ export function AdminOverviewPage() {
         description={t("adminOverview.description")}
         title={t("adminOverview.title")}
       >
-        <div className="grid gap-4 xl:grid-cols-4">
-          {stats.map((item) => (
-            <WorkspaceMetric hint={item.hint} icon={item.icon} key={item.label} label={item.label} value={item.value} />
-          ))}
-        </div>
-      </WorkspacePanel>
+        <WorkspaceMetricStrip items={stats} />
+      </WorkspaceSection>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <WorkspacePanel description={t("adminOverview.latestMessagesDescription")} title={t("adminOverview.latestMessagesTitle")}>
+        <WorkspaceSection description={t("adminOverview.latestMessagesDescription")} title={t("adminOverview.latestMessagesTitle")}>
+          <WorkspaceSurface>
           <div className="space-y-3">
             {paginatedMessages.items.map((item) => (
               <WorkspaceListRow
+                className="border-0 bg-muted/15"
                 description={`${decodeMimeHeaderValue(item.fromAddr)} → ${item.mailboxAddress}`}
                 key={item.id}
                 meta={
@@ -80,12 +79,15 @@ export function AdminOverviewPage() {
               totalPages={paginatedMessages.totalPages}
             />
           </div>
-        </WorkspacePanel>
+          </WorkspaceSurface>
+        </WorkspaceSection>
 
-        <WorkspacePanel description={t("adminOverview.jobsDescription")} title={t("adminOverview.jobsTitle")}>
+        <WorkspaceSection description={t("adminOverview.jobsDescription")} title={t("adminOverview.jobsTitle")}>
+          <WorkspaceSurface>
           <div className="space-y-3">
             {(jobsQuery.data ?? []).slice(0, 5).map((item) => (
               <WorkspaceListRow
+                className="border-0 bg-muted/15"
                 description={item.errorMessage || t("adminOverview.ok")}
                 key={item.id}
                 meta={
@@ -98,7 +100,8 @@ export function AdminOverviewPage() {
               />
             ))}
           </div>
-        </WorkspacePanel>
+          </WorkspaceSurface>
+        </WorkspaceSection>
       </div>
     </WorkspacePage>
   );

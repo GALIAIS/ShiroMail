@@ -9,9 +9,11 @@ import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
-  WorkspaceMetric,
+  WorkspaceMetricStrip,
   WorkspacePage,
   WorkspacePanel,
+  WorkspaceSection,
+  WorkspaceSurface,
 } from "@/components/layout/workspace-ui";
 import {
   ArrowRight,
@@ -116,7 +118,7 @@ export function UserDashboardPage() {
     <WorkspacePage>
       <SystemNoticeBanner />
 
-      <WorkspacePanel
+      <WorkspaceSection
         action={
           <div className="flex items-center gap-2">
             <WorkspaceBadge>{t("dashboard.noticesCount", { count: overview?.noticeCount ?? 0 })}</WorkspaceBadge>
@@ -126,16 +128,11 @@ export function UserDashboardPage() {
             </Badge>
           </div>
         }
-        className="bg-card/90"
         description={t("dashboard.unifiedAccount")}
         title={`${greeting}，${displayName}`}
       >
-        <div className="grid gap-4 xl:grid-cols-4">
-          {stats.map((item) => (
-            <WorkspaceMetric hint={item.hint} icon={item.icon} key={item.label} label={item.label} value={item.value} />
-          ))}
-        </div>
-      </WorkspacePanel>
+        <WorkspaceMetricStrip items={stats} />
+      </WorkspaceSection>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
@@ -189,7 +186,7 @@ export function UserDashboardPage() {
         hasApiKeys={(overview?.activeApiKeyCount ?? 0) > 0}
       />
 
-      <WorkspacePanel
+      <WorkspaceSection
         action={
           <div className="flex items-center gap-1">
             {([7, 14, 30] as const).map((d) => (
@@ -212,10 +209,12 @@ export function UserDashboardPage() {
           </span>
         }
       >
-        <MessageTrendChart days={trendDays} />
-      </WorkspacePanel>
+        <WorkspaceSurface>
+          <MessageTrendChart days={trendDays} />
+        </WorkspaceSurface>
+      </WorkspaceSection>
 
-      <WorkspacePanel
+      <WorkspaceSection
         action={
           <Button asChild size="sm" variant="secondary">
             <Link to="/dashboard/domains">
@@ -227,87 +226,101 @@ export function UserDashboardPage() {
         description={t("dashboard.domainsDescription")}
         title={t("dashboard.domainsTitle")}
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <WorkspaceMetric hint={t("dashboard.totalDomainsHint")} label={t("dashboard.totalDomains")} value={ownedDomains.length} />
-          <WorkspaceMetric hint={t("dashboard.rootDomainsHint")} label={t("dashboard.rootDomains")} value={rootDomainCount} />
-          <WorkspaceMetric hint={t("dashboard.childDomainsHint")} label={t("dashboard.childDomains")} value={childDomainCount} />
-        </div>
-
-        {ownedDomains.length ? (
-          <div className="grid gap-3 xl:grid-cols-3">
-            {ownedDomains.slice(0, 6).map((domain) => (
-              <Card className="border-border/60 bg-muted/10 shadow-none" key={domain.id}>
-                <CardContent className="space-y-1.5 py-4">
-                  <div className="text-sm font-medium">{domain.domain}</div>
-                  <div className="text-[0.92rem] leading-6 text-muted-foreground">
-                    {domain.kind === "root"
-                      ? t("dashboard.domainKindRoot")
-                      : t("dashboard.domainKindChild", { level: domain.level })}{" "}
-                    · {t("dashboard.weight", { weight: domain.weight })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <WorkspaceEmpty
-            action={
-              <Button asChild size="sm">
-                <Link to="/dashboard/domains">{t("dashboard.addDomain")}</Link>
-              </Button>
-            }
-            description={t("dashboard.noDomainsDescription")}
-            title={t("dashboard.noDomainsTitle")}
+        <WorkspaceSurface className="space-y-4">
+          <WorkspaceMetricStrip
+            className="md:grid-cols-3 xl:grid-cols-3"
+            items={[
+              { hint: t("dashboard.totalDomainsHint"), label: t("dashboard.totalDomains"), value: ownedDomains.length },
+              { hint: t("dashboard.rootDomainsHint"), label: t("dashboard.rootDomains"), value: rootDomainCount },
+              { hint: t("dashboard.childDomainsHint"), label: t("dashboard.childDomains"), value: childDomainCount },
+            ]}
           />
-        )}
-      </WorkspacePanel>
 
-      <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <WorkspacePanel description={t("dashboard.quickActionsDescription")} title={t("dashboard.quickActionsTitle")}>
-          <div className="grid gap-3 lg:grid-cols-2">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Card className="border-border/60 bg-muted/10 shadow-none" key={action.to}>
-                  <CardContent className="flex items-start justify-between gap-3 py-4">
-                    <div className="flex gap-3">
-                      <div className="flex size-11 items-center justify-center rounded-xl border border-border/70 bg-muted/40 text-muted-foreground">
-                        <Icon className="size-4" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-[0.95rem] font-medium">{action.title}</div>
-                        <p className="text-[0.92rem] leading-6 text-muted-foreground">{action.description}</p>
-                      </div>
+          {ownedDomains.length ? (
+            <div className="grid gap-3 xl:grid-cols-3">
+              {ownedDomains.slice(0, 6).map((domain) => (
+                <Card className="border-border/60 bg-muted/10 shadow-none" key={domain.id}>
+                  <CardContent className="space-y-1.5 py-4">
+                    <div className="text-sm font-medium">{domain.domain}</div>
+                    <div className="text-[0.92rem] leading-6 text-muted-foreground">
+                      {domain.kind === "root"
+                        ? t("dashboard.domainKindRoot")
+                        : t("dashboard.domainKindChild", { level: domain.level })}{" "}
+                      · {t("dashboard.weight", { weight: domain.weight })}
                     </div>
-                    <Button asChild size="icon-sm" variant="ghost">
-                      <Link to={action.to}>
-                        <ArrowRight className="size-4" />
-                      </Link>
-                    </Button>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
-        </WorkspacePanel>
+              ))}
+            </div>
+          ) : (
+            <WorkspaceEmpty
+              action={
+                <Button asChild size="sm">
+                  <Link to="/dashboard/domains">{t("dashboard.addDomain")}</Link>
+                </Button>
+              }
+              description={t("dashboard.noDomainsDescription")}
+              title={t("dashboard.noDomainsTitle")}
+            />
+          )}
+        </WorkspaceSurface>
+      </WorkspaceSection>
 
-        <WorkspacePanel description={t("dashboard.summaryDescription")} title={t("dashboard.summaryTitle")}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <WorkspaceMetric hint={t("dashboard.openFeedbackHint")} label={t("dashboard.openFeedback")} value={overview?.openFeedbackCount ?? 0} />
-            <WorkspaceMetric hint={t("dashboard.latestNoticesHint")} label={t("dashboard.latestNotices")} value={overview?.noticeCount ?? 0} />
-            <WorkspaceMetric hint={t("dashboard.totalMailboxesHint")} label={t("dashboard.totalMailboxes")} value={dashboard?.totalMailboxCount ?? 0} />
-            <WorkspaceMetric hint={t("dashboard.feedbackEntryHint")} label={t("dashboard.feedbackEntry")} value={t("dashboard.connected")} />
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-[0.92rem] text-muted-foreground">
-            <MessageSquareText className="size-4" />
-            <span>{t("dashboard.summaryFootnote")}</span>
-          </div>
-        </WorkspacePanel>
+      <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+        <WorkspaceSection description={t("dashboard.quickActionsDescription")} title={t("dashboard.quickActionsTitle")}>
+          <WorkspaceSurface>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Card className="border-border/60 bg-muted/10 shadow-none" key={action.to}>
+                    <CardContent className="flex items-start justify-between gap-3 py-4">
+                      <div className="flex gap-3">
+                        <div className="flex size-11 items-center justify-center rounded-xl border border-border/70 bg-muted/40 text-muted-foreground">
+                          <Icon className="size-4" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-[0.95rem] font-medium">{action.title}</div>
+                          <p className="text-[0.92rem] leading-6 text-muted-foreground">{action.description}</p>
+                        </div>
+                      </div>
+                      <Button asChild size="icon-sm" variant="ghost">
+                        <Link to={action.to}>
+                          <ArrowRight className="size-4" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </WorkspaceSurface>
+        </WorkspaceSection>
+
+        <WorkspaceSection description={t("dashboard.summaryDescription")} title={t("dashboard.summaryTitle")}>
+          <WorkspaceSurface className="space-y-3">
+            <WorkspaceMetricStrip
+              className="md:grid-cols-2 xl:grid-cols-2"
+              items={[
+                { hint: t("dashboard.openFeedbackHint"), label: t("dashboard.openFeedback"), value: overview?.openFeedbackCount ?? 0 },
+                { hint: t("dashboard.latestNoticesHint"), label: t("dashboard.latestNotices"), value: overview?.noticeCount ?? 0 },
+                { hint: t("dashboard.totalMailboxesHint"), label: t("dashboard.totalMailboxes"), value: dashboard?.totalMailboxCount ?? 0 },
+                { hint: t("dashboard.feedbackEntryHint"), label: t("dashboard.feedbackEntry"), value: t("dashboard.connected") },
+              ]}
+            />
+            <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-[0.92rem] text-muted-foreground">
+              <MessageSquareText className="size-4" />
+              <span>{t("dashboard.summaryFootnote")}</span>
+            </div>
+          </WorkspaceSurface>
+        </WorkspaceSection>
       </div>
 
-      <WorkspacePanel description={t("dashboard.activityDescription")} title={t("dashboard.activityTitle")}>
-        <RecentActivityFeed />
-      </WorkspacePanel>
+      <WorkspaceSection description={t("dashboard.activityDescription")} title={t("dashboard.activityTitle")}>
+        <WorkspaceSurface>
+          <RecentActivityFeed />
+        </WorkspaceSurface>
+      </WorkspaceSection>
 
       <WorkspacePanel
         action={

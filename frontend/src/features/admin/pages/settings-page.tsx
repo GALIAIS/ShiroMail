@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { NoticeBanner } from "@/components/ui/notice-banner";
 import {
+  WorkspaceBadge,
   WorkspacePage,
   WorkspacePanel,
 } from "@/components/layout/workspace-ui";
@@ -90,6 +91,26 @@ import { APIRuntimeStatus } from "../components/api-runtime-status";
 import { OtherSettingsTab } from "../components/other-settings-tab";
 import type { DeliveryTestDiagnosticState } from "../components/delivery-test-panel";
 
+function getSettingsSnapshot(input: {
+  siteIdentity: SiteIdentitySettings;
+  registration: AuthRegistrationSettings;
+  password: AuthPasswordSettings;
+  session: AuthSessionSettings;
+  oauthDisplay: OAuthDisplaySettings;
+  oauthProviders: OAuthProviderSettings[];
+  smtp: MailSMTPSettings;
+  delivery: MailDeliverySettings;
+  inbound: MailInboundSettings;
+  apiLimits: APILimitsSettings;
+  domainPolicy: DomainPolicySettings;
+}) {
+  return JSON.stringify(input);
+}
+
+function getDeliverySettingsSnapshot(delivery: MailDeliverySettings) {
+  return JSON.stringify(delivery);
+}
+
 export function AdminSettingsPage() {
   const queryClient = useQueryClient();
   const settingsQuery = useQuery({
@@ -138,30 +159,92 @@ export function AdminSettingsPage() {
   const previousDerivedMailTargetsRef = useRef(derivedMailTargets);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackVariant, setFeedbackVariant] = useState<"error" | "success">("success");
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [savedDeliverySnapshot, setSavedDeliverySnapshot] = useState<string | null>(null);
   const [deliveryTestDiagnostic, setDeliveryTestDiagnostic] = useState<DeliveryTestDiagnosticState>({
     status: "idle",
     recipient: "",
   });
   const deliveryTestLockRef = useRef(false);
+  const currentSnapshot = useMemo(
+    () =>
+      getSettingsSnapshot({
+        siteIdentity,
+        registration,
+        password,
+        session,
+        oauthDisplay,
+        oauthProviders,
+        smtp,
+        delivery,
+        inbound,
+        apiLimits,
+        domainPolicy,
+      }),
+    [
+      apiLimits,
+      delivery,
+      domainPolicy,
+      inbound,
+      oauthDisplay,
+      oauthProviders,
+      password,
+      registration,
+      session,
+      siteIdentity,
+      smtp,
+    ],
+  );
+  const hasUnsavedChanges = savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+  const currentDeliverySnapshot = useMemo(() => getDeliverySettingsSnapshot(delivery), [delivery]);
+  const hasUnsavedDeliveryChanges =
+    savedDeliverySnapshot !== null && currentDeliverySnapshot !== savedDeliverySnapshot;
 
   useEffect(() => {
     if (!settingsQuery.data) {
       return;
     }
 
-    setSiteIdentity(parseSiteIdentity(settingsQuery.data));
-    setRegistration(parseRegistration(settingsQuery.data));
-    setPassword(parsePassword(settingsQuery.data));
-    setSession(parseSession(settingsQuery.data));
-    setOAuthDisplay(parseOAuthDisplay(settingsQuery.data));
-    setOAuthProviders(parseOAuthProviders(settingsQuery.data));
-    setSMTP(parseSMTP(settingsQuery.data));
+    const nextSiteIdentity = parseSiteIdentity(settingsQuery.data);
+    const nextRegistration = parseRegistration(settingsQuery.data);
+    const nextPassword = parsePassword(settingsQuery.data);
+    const nextSession = parseSession(settingsQuery.data);
+    const nextOAuthDisplay = parseOAuthDisplay(settingsQuery.data);
+    const nextOAuthProviders = parseOAuthProviders(settingsQuery.data);
+    const nextSMTP = parseSMTP(settingsQuery.data);
     const nextDelivery = parseMailDelivery(settingsQuery.data);
+    const nextInbound = parseInbound(settingsQuery.data);
+    const nextAPILimits = parseAPILimits(settingsQuery.data);
+    const nextDomainPolicy = parseDomainPolicy(settingsQuery.data);
+
+    setSiteIdentity(nextSiteIdentity);
+    setRegistration(nextRegistration);
+    setPassword(nextPassword);
+    setSession(nextSession);
+    setOAuthDisplay(nextOAuthDisplay);
+    setOAuthProviders(nextOAuthProviders);
+    setSMTP(nextSMTP);
     setDelivery(nextDelivery);
     setDeliveryTestRecipient(nextDelivery.fromAddress);
-    setInbound(parseInbound(settingsQuery.data));
-    setAPILimits(parseAPILimits(settingsQuery.data));
-    setDomainPolicy(parseDomainPolicy(settingsQuery.data));
+    setInbound(nextInbound);
+    setAPILimits(nextAPILimits);
+    setDomainPolicy(nextDomainPolicy);
+    setSavedSnapshot(
+      getSettingsSnapshot({
+        siteIdentity: nextSiteIdentity,
+        registration: nextRegistration,
+        password: nextPassword,
+        session: nextSession,
+        oauthDisplay: nextOAuthDisplay,
+        oauthProviders: nextOAuthProviders,
+        smtp: nextSMTP,
+        delivery: nextDelivery,
+        inbound: nextInbound,
+        apiLimits: nextAPILimits,
+        domainPolicy: nextDomainPolicy,
+      }),
+    );
+    setSavedDeliverySnapshot(getDeliverySettingsSnapshot(nextDelivery));
   }, [settingsQuery.data]);
 
   useEffect(() => {
@@ -226,6 +309,8 @@ export function AdminSettingsPage() {
     onSuccess: async () => {
       setFeedbackVariant("success");
       setFeedback("系统设置已保存。");
+      setSavedSnapshot(currentSnapshot);
+      setSavedDeliverySnapshot(currentDeliverySnapshot);
       await queryClient.invalidateQueries({
         queryKey: ["admin-settings-sections"],
       });
@@ -314,7 +399,12 @@ export function AdminSettingsPage() {
   }
 
   function handleSendDeliveryTest() {
-    if (deliveryTestLockRef.current || testDeliveryMutation.isPending) {
+    if (deliveryTestLockRef.current || testDeliveryMutation.isPending || hasUnsavedDeliveryChanges) {
+      if (hasUnsavedDeliveryChanges) {
+        setFeedbackVariant("error");
+        setFeedback("当前有未保存的发信配置，请先保存设置再发送测试邮件。");
+        window.setTimeout(() => setFeedback(null), 5000);
+      }
       return;
     }
     const recipient = deliveryTestRecipient.trim() || delivery.fromAddress;
@@ -340,14 +430,20 @@ export function AdminSettingsPage() {
         description="按站点、OAuth、用户策略和其他系统项分组管理，避免整页长表单堆叠。"
         action={
           <Button
-            disabled={saveMutation.isPending || settingsQuery.isLoading}
+            disabled={saveMutation.isPending || settingsQuery.isLoading || !hasUnsavedChanges}
             onClick={handleSaveSettings}
           >
-            {saveMutation.isPending ? "保存中..." : "保存设置"}
+            {saveMutation.isPending ? "保存中..." : hasUnsavedChanges ? "保存设置" : "无变更"}
           </Button>
         }
       >
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <WorkspaceBadge variant={hasUnsavedChanges ? "outline" : "secondary"}>
+              {settingsQuery.isLoading ? "加载中" : hasUnsavedChanges ? "有未保存更改" : "已同步"}
+            </WorkspaceBadge>
+            <span>保存按钮会一次性提交当前所有设置分组；测试邮件只使用已保存的发信 SMTP 配置。</span>
+          </div>
           {loadingText ? (
             <div className="text-sm text-muted-foreground">{loadingText}</div>
           ) : null}
@@ -467,6 +563,7 @@ export function AdminSettingsPage() {
             isTestPending={testDeliveryMutation.isPending}
             onSendDeliveryTest={handleSendDeliveryTest}
             deliveryTestDiagnostic={deliveryTestDiagnostic}
+            hasUnsavedChanges={hasUnsavedDeliveryChanges}
           />
         </TabsContent>
       </Tabs>

@@ -3,6 +3,7 @@ import {
   WorkspaceBadge,
   WorkspaceEmpty,
   WorkspaceListRow,
+  WorkspaceStatusBadge,
 } from "@/components/layout/workspace-ui";
 import { cn } from "@/lib/utils";
 import { PaginationControls, SectionToggle } from "./dns-shared-ui";
@@ -94,7 +95,7 @@ export function DnsZoneList({
                 }
                 meta={
                   <>
-                    <WorkspaceBadge>{zone.status}</WorkspaceBadge>
+                    <WorkspaceStatusBadge status={zone.status}>{zone.status}</WorkspaceStatusBadge>
                     {activeZoneId === zone.id ? (
                       <WorkspaceBadge variant="outline">当前工作区</WorkspaceBadge>
                     ) : null}

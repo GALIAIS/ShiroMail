@@ -283,6 +283,11 @@ const translation = {
       minutesAgo: "2 min ago",
       today: "Today",
     },
+    stats: {
+      syncing: "Syncing live data...",
+      updatedAt: "Last updated: {{time}}",
+      unavailable: "Live data is unavailable right now",
+    },
     sections: {
       coreEyebrow: "Core",
       coreTitle: "Core capabilities",
@@ -336,10 +341,13 @@ const translation = {
         "Message events, notices, and callbacks are collected into one automation-friendly flow.",
     },
     workflow: {
+      step1Title: "Create the inbox",
       item1:
         "Pick a domain, set the lifetime, optionally customize the local part, and create a mailbox in seconds.",
+      step2Title: "Receive the message",
       item2:
         "Keep message list, body, attachments, and raw EML in the same workspace instead of jumping between pages.",
+      step3Title: "Automate the flow",
       item3:
         "Use one sign-in entry for both users and admins, then route automatically by role.",
     },
